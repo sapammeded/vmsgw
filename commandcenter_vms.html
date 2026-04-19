@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>VMS WAR COMMAND CENTER</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+body{font-family:Arial;background:#020617;color:white;margin:0}
+.container{padding:16px}
+.card{background:#0f172a;padding:16px;margin-bottom:12px;border-radius:12px}
+input,select{width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:none}
+button{padding:6px 10px;border:none;border-radius:6px;cursor:pointer}
+.green{background:#22c55e}
+.red{background:#ef4444}
+.yellow{background:#f59e0b}
+.table{width:100%;font-size:12px}
+.table td{padding:6px;border-bottom:1px solid #1e293b}
+.alert{padding:10px;margin-bottom:8px;border-radius:8px;font-weight:bold;}
+.alert-red{background:#7f1d1d}
+.alert-yellow{background:#78350f}
+#map{height:250px;border-radius:10px}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div id="loginBox" class="card">
+<h3>Login</h3>
+<input id="username" placeholder="admin" value="admin">
+<input id="password" type="password" placeholder="123456" value="123456">
+<button onclick="login()" class="green">LOGIN</button>
+<button onclick="forceInit()" class="yellow" style="margin-top:10px;">⚠️ FORCE INIT (First Time Setup)</button>
+<button onclick="checkKV()" style="background:#6366f1; margin-top:5px;">🔍 Check KV Status</button>
+</div>
+
+<div id="app" style="display:none">
+
+<div class="card">
+<h3>System Stats</h3>
+<div id="stats"></div>
+</div>
+
+<div class="card">
+<h3>🔴 LIVE ALERT</h3>
+<div id="alerts"></div>
+</div>
+
+<div class="card">
+<h3>Devices</h3>
+<div id="devices"></div>
+</div>
+
+<div class="card">
+<h3>🗺️ LIVE GPS MAP</h3>
+<div id="map"></div>
+</div>
+
+<div class="card">
+<h3>🚨 AUTO BAN</h3>
+<button onclick="toggleAutoBan()" id="autoBanBtn" class="yellow">AUTO BAN OFF</button>
+</div>
+
+<div class="card">
+<h3>User</h3>
+<input id="newUser" placeholder="username">
+<input id="newPass" placeholder="password" type="password">
+<select id="role">
+<option>ADMIN</option>
+<option>OPERATOR</option>
+</select>
+<button onclick="addUser()" class="green">ADD</button>
+<div id="userList"></div>
+</div>
+
+<div class="card">
+<h3>🔐 Change Password</h3>
+<input id="newPassword" type="password" placeholder="new password">
+<button onclick="changePassword()" class="yellow">UPDATE PASSWORD</button>
+</div>
+
+</div>
+</div>
+
+<script>
+
+// ================= CONFIG =================
+const BASE_URL = "https://vmsgw.mededsapam.workers.dev";
+let autoBan = false;
+
+// 🔥 FIX TOKEN ANDROID - PAKAI LOCALSTORAGE LANGSUNG
+function getToken(){
+    const token = localStorage.getItem("vms_auth_token");
+    console.log("[DEBUG] getToken() ->", token ? token.substring(0,20)+"..." : "NULL");
+    return token;
+}
+
+function setToken(token){
+    if(token){
+        localStorage.setItem("vms_auth_token", token);
+        console.log("[DEBUG] Token saved");
+    }else{
+        localStorage.removeItem("vms_auth_token");
+        console.log("[DEBUG] Token removed");
+    }
+}
+
+let map;
+let markers = {};
+
+// ================= MAP =================
+function initMap(){
+    map = L.map('map').setView([-6.2,106.8], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+}
+
+// ================= SAFE FETCH =================
+async function safeFetch(url, opt = {}) {
+    try {
+        opt.headers = opt.headers || {};
+        const token = getToken();
+        
+        if(token){
+            opt.headers["x-token"] = token;
+        }
+        
+        console.log(`[DEBUG] safeFetch: ${url}`, { hasToken: !!token });
+        
+        const r = await fetch(url, opt);
+        
+        if(r.status === 401){
+            console.error("[ERROR] 401 Unauthorized - Token invalid/expired");
+            setToken(null);
+            alert("Session expired. Please login again.");
+            location.reload();
+            return null;
+        }
+        
+        if(!r.ok){
+            const errorText = await r.text();
+            console.error(`[ERROR] HTTP ${r.status}: ${errorText}`);
+            return null;
+        }
+        
+        return await r.json();
+        
+    } catch(e){
+        console.error("[ERROR] safeFetch exception:", e);
+        return null;
+    }
+}
+
+// ================= FORCE INIT =================
+async function forceInit(){
+    try{
+        console.log("[DEBUG] Calling force-init...");
+        const res = await fetch(BASE_URL + "/force-init", {
+            method: "GET",
+            headers: {"Content-Type": "application/json"}
+        });
+        
+        const data = await res.json();
+        console.log("[DEBUG] force-init response:", data);
+        
+        if(data && data.ok){
+            alert(`✅ Database initialized!\nUsername: ${data.username}\nPassword: ${data.password}`);
+            document.getElementById('username').value = data.username;
+            document.getElementById('password').value = data.password;
+        } else {
+            alert("Force init failed: " + JSON.stringify(data));
+        }
+    } catch(e){
+        console.error("[ERROR] force-init exception:", e);
+        alert("Error: " + e.message);
+    }
+}
+
+// ================= CHECK KV STATUS =================
+async function checkKV(){
+    try{
+        const res = await fetch(BASE_URL + "/debug-kv");
+        const data = await res.json();
+        console.log("[DEBUG] KV Status:", data);
+        
+        let message = `KV Status:\n`;
+        message += `KV Exists: ${data.kv_exists ? '✅' : '❌'}\n`;
+        message += `Write Test: ${data.write_test ? '✅' : '❌'}\n`;
+        message += `Read Test: ${data.read_test ? '✅' : '❌'}\n`;
+        
+        if(data.error){
+            message += `\nError: ${data.error}`;
+        }
+        
+        alert(message);
+        
+        if(!data.kv_exists || !data.write_test || !data.read_test){
+            console.error("[CRITICAL] KV Storage not working properly!");
+        }
+    } catch(e){
+        console.error("[ERROR] checkKV exception:", e);
+        alert("Cannot check KV status: " + e.message);
+    }
+}
+
+// ================= LOGIN =================
+async function login(){
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    if(!username || !password){
+        alert("Please enter username and password");
+        return;
+    }
+    
+    try{
+        console.log("[DEBUG] Login attempt for:", username);
+        
+        const res = await fetch(BASE_URL + "/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+        
+        const d = await res.json();
+        console.log("[DEBUG] Login response:", { ok: d.ok, hasToken: !!d.token, role: d.role });
+        
+        if(d && d.ok === true && d.token){
+            setToken(d.token);
+            console.log("[DEBUG] Token saved, initializing app...");
+            init();
+        } else {
+            console.error("[ERROR] Login failed:", d);
+            alert("LOGIN GAGAL: " + (d.error || "Invalid credentials"));
+        }
+    } catch(e){
+        console.error("[ERROR] Login exception:", e);
+        alert("ERROR LOGIN: " + e.message);
+    }
+}
+
+// ================= INIT =================
+function init(){
+    const loginBox = document.getElementById('loginBox');
+    const app = document.getElementById('app');
+    
+    if(loginBox) loginBox.style.display = "none";
+    if(app) app.style.display = "block";
+    
+    initMap();
+    loadAll();
+    
+    // Auto refresh setiap 5 detik
+    if(window.refreshInterval){
+        clearInterval(window.refreshInterval);
+    }
+    window.refreshInterval = setInterval(loadAll, 5000);
+}
+
+// ================= LOAD =================
+async function loadAll(){
+    const token = getToken();
+    if(!token){
+        console.warn("[WARN] No token, redirecting to login");
+        location.reload();
+        return;
+    }
+    
+    const data = await safeFetch(BASE_URL + "/admin");
+    if(!data){
+        console.error("[ERROR] Failed to load admin data");
+        return;
+    }
+    
+    console.log("[DEBUG] Admin data loaded:", { 
+        devices: Object.keys(data.devices || {}).length,
+        licenses: Object.keys(data.licenses || {}).length
+    });
+    
+    renderStats(data);
+    renderDevices(data.devices || {});
+    renderAlerts(data.devices || {});
+    renderMap(data.devices || {});
+    await loadUsers();
+}
+
+// ================= LOAD USERS =================
+async function loadUsers(){
+    const data = await safeFetch(BASE_URL + "/users");
+    if(!data) return;
+    
+    const userList = document.getElementById('userList');
+    if(!userList) return;
+    
+    let html = "<table class='table'><tr><th>Username</th><th>Role</th><th>Action</th></tr>";
+    
+    data.forEach(user => {
+        html += `<tr>
+            <td>${user.username}</td>
+            <td>${user.role}</td>
+            <td><button class="red" onclick="deleteUser('${user.username}')">DELETE</button></td>
+        </tr>`;
+    });
+    
+    html += "</table>";
+    userList.innerHTML = html;
+}
+
+// ================= DELETE USER =================
+async function deleteUser(username){
+    if(!confirm(`Delete user ${username}?`)) return;
+    
+    const result = await safeFetch(BASE_URL + "/delete-user", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username: username })
+    });
+    
+    if(result && result.ok){
+        alert("User deleted");
+        await loadUsers();
+    } else {
+        alert("Delete failed");
+    }
+}
+
+// ================= STATS =================
+function renderStats(d){
+    const statsDiv = document.getElementById('stats');
+    if(statsDiv){
+        statsDiv.innerHTML = `
+            Devices: ${Object.keys(d.devices || {}).length}<br>
+            Licenses: ${Object.keys(d.licenses || {}).length}
+        `;
+    }
+}
+
+// ================= ALERT =================
+function renderAlerts(dev){
+    const alertsDiv = document.getElementById('alerts');
+    if(!alertsDiv) return;
+    
+    let html="";
+    Object.entries(dev).forEach(([id,d])=>{
+        if(d.status==="SUSPICIOUS"){
+            html+=`<div class="alert alert-red">⚠️ ${id} - SUSPICIOUS</div>`;
+        }
+        if(d.status==="WARNING"){
+            html+=`<div class="alert alert-yellow">⚠️ ${id} - WARNING</div>`;
+        }
+    });
+    alertsDiv.innerHTML = html || "✅ NO ALERT";
+}
+
+// ================= DEVICES =================
+function renderDevices(dev){
+    const devicesDiv = document.getElementById('devices');
+    if(!devicesDiv) return;
+    
+    let html="<table class='table'><tr><th>Device ID</th><th>License</th><th>Status</th><th>Actions</th></tr>";
+    
+    Object.entries(dev).forEach(([id,d])=>{
+        
+        let color = "green";
+        if(d.status==="SUSPICIOUS") color = "red";
+        if(d.status==="WARNING") color = "orange";
+        if(d.status==="BANNED") color = "red";
+        
+        if(autoBan && d.status==="SUSPICIOUS"){
+            ban(d.license);
+        }
+        
+        html+=`
+        <tr>
+            <td>${id.substring(0,20)}...</td>
+            <td>${d.license || 'N/A'}</td>
+            <td><span style="color:${color};font-weight:bold;">${d.status || 'UNKNOWN'}</span></td>
+            <td>
+                <button class="red" onclick="ban('${d.license}')">BAN</button>
+                <button class="yellow" onclick="unban('${d.license}')">UNBAN</button>
+                <button onclick="resetDevice('${id}')">RESET</button>
+            </td>
+        </tr>
+        `;
+    });
+    
+    html += "</table>";
+    devicesDiv.innerHTML = html;
+}
+
+// ================= MAP =================
+function renderMap(dev){
+    if(!map) return;
+    
+    Object.entries(dev).forEach(([id,d])=>{
+        if(!d.lastLocation || !d.lastLocation.lat || !d.lastLocation.lng) return;
+        
+        const lat = d.lastLocation.lat;
+        const lng = d.lastLocation.lng;
+        
+        let color = "green";
+        if(d.status==="SUSPICIOUS") color="red";
+        if(d.status==="WARNING") color="orange";
+        
+        if(markers[id]){
+            markers[id].setLatLng([lat,lng]);
+            markers[id].setStyle({color: color, fillColor: color});
+        } else {
+            markers[id] = L.circleMarker([lat,lng],{
+                radius:8,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.7
+            }).addTo(map).bindPopup(`${id}<br>Status: ${d.status}`);
+        }
+    });
+}
+
+// ================= ACTION =================
+async function ban(license){
+    if(!license) return;
+    const result = await safeFetch(BASE_URL+"/ban", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({license})
+    });
+    if(result && result.ok) loadAll();
+}
+
+async function unban(license){
+    if(!license) return;
+    const result = await safeFetch(BASE_URL+"/unban", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({license})
+    });
+    if(result && result.ok) loadAll();
+}
+
+async function resetDevice(id){
+    if(!id) return;
+    const result = await safeFetch(BASE_URL+"/reset-device", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({deviceId:id})
+    });
+    if(result && result.ok) loadAll();
+}
+
+// ================= USER =================
+async function addUser(){
+    const newUser = document.getElementById('newUser');
+    const newPass = document.getElementById('newPass');
+    const role = document.getElementById('role');
+    
+    if(!newUser.value || !newPass.value){
+        alert("Username and password required");
+        return;
+    }
+    
+    const result = await safeFetch(BASE_URL+"/add-user", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            username: newUser.value,
+            password: newPass.value,
+            role: role.value
+        })
+    });
+    
+    if(result && result.ok){
+        alert("User added successfully");
+        newUser.value = "";
+        newPass.value = "";
+        await loadUsers();
+    } else {
+        alert("Failed to add user");
+    }
+}
+
+// ================= PASSWORD =================
+async function changePassword(){
+    const newPassword = document.getElementById('newPassword');
+    
+    if(!newPassword.value){
+        alert("New password required");
+        return;
+    }
+    
+    const result = await safeFetch(BASE_URL+"/change-password", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            newPassword: newPassword.value
+        })
+    });
+    
+    if(result && result.ok){
+        alert("Password updated successfully");
+        newPassword.value = "";
+    } else {
+        alert("Failed to update password");
+    }
+}
+
+function toggleAutoBan(){
+    autoBan = !autoBan;
+    const btn = document.getElementById('autoBanBtn');
+    if(btn){
+        btn.textContent = autoBan ? "AUTO BAN ON" : "AUTO BAN OFF";
+        btn.className = autoBan ? "red" : "yellow";
+    }
+}
+
+// ================= AUTO LOGIN CHECK =================
+async function autoLoginCheck(){
+    const token = getToken();
+    console.log("[DEBUG] Auto login check, token exists:", !!token);
+    
+    if(token){
+        // Test token dengan panggilan ke /users
+        const testResult = await safeFetch(BASE_URL + "/users");
+        if(testResult){
+            console.log("[DEBUG] Token valid, initializing app");
+            init();
+        } else {
+            console.warn("[WARN] Token invalid, clearing");
+            setToken(null);
+        }
+    }
+}
+
+// Start
+console.log("[DEBUG] VMS Command Center starting...");
+autoLoginCheck();
+
+</script>
+</body>
+</html>
