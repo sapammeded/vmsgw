@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-<title>VMS WAR COMMAND CENTER | Hybrid Command Center</title>
+<title>VMS Command Center | Hybrid Desktop & Mobile</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <style>
 * {
@@ -15,44 +19,63 @@
     box-sizing: border-box;
 }
 
+:root {
+    --primary: #22c55e;
+    --primary-dark: #16a34a;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --dark-bg: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: #020617;
-    color: white;
+    background: var(--dark-bg);
+    color: var(--text);
 }
 
-/* ================= HYBRID LAYOUT ================= */
-.container {
-    padding: 12px;
+/* ========== LAYOUT HYBRID ========== */
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* HEADER */
+.header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
     max-width: 1400px;
     margin: 0 auto;
-}
-
-/* HEADER HYBRID */
-.hybrid-header {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    border-radius: 16px;
-    padding: 16px 20px;
-    margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
-    border: 1px solid #334155;
 }
 
-.logo-area h2 {
-    font-size: 1.2rem;
-    color: #22c55e;
+.logo h1 {
+    font-size: 1.3rem;
+    color: var(--primary);
 }
 
-.logo-area p {
+.logo p {
     font-size: 0.7rem;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
-.user-info {
+.user-section {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -60,221 +83,261 @@ body {
 }
 
 .user-badge {
-    background: #1e293b;
-    padding: 6px 14px;
+    background: var(--card-bg);
+    padding: 8px 16px;
     border-radius: 40px;
-    font-size: 0.8rem;
-    border: 1px solid #334155;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
 }
 
-/* STATS GRID HYBRID */
+/* MAIN CONTENT */
+.main-content {
+    flex: 1;
+    padding: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* STATS GRID - RESPONSIVE */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
-.stat-card-hybrid {
-    background: #0f172a;
-    border-radius: 16px;
-    padding: 16px;
-    text-align: center;
-    border: 1px solid #1e293b;
+.stat-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:active {
+    transform: scale(0.98);
 }
 
 .stat-number {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: bold;
-    color: #22c55e;
+    color: var(--primary);
 }
 
 .stat-label {
-    font-size: 0.7rem;
-    color: #94a3b8;
+    font-size: 0.75rem;
+    color: var(--text-muted);
     text-transform: uppercase;
-    margin-top: 4px;
+    margin-top: 8px;
 }
 
-/* CARD SYSTEM */
+/* CARDS */
 .card {
-    background: #0f172a;
-    padding: 16px;
-    margin-bottom: 16px;
-    border-radius: 16px;
-    border: 1px solid #1e293b;
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
 }
 
-.card h3 {
-    font-size: 1rem;
-    margin-bottom: 12px;
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.card-header h3 {
+    font-size: 1.1rem;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 /* FORM ELEMENTS */
-input, select {
+input, select, textarea {
     width: 100%;
-    padding: 12px;
+    padding: 12px 16px;
     margin-bottom: 12px;
     border-radius: 12px;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: white;
-    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    background: var(--dark-bg);
+    color: var(--text);
+    font-size: 14px;
+    transition: all 0.2s;
 }
 
 input:focus, select:focus {
     outline: none;
-    border-color: #22c55e;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
 }
 
-button {
-    padding: 10px 16px;
+/* BUTTONS */
+.btn {
+    padding: 12px 20px;
     border: none;
     border-radius: 12px;
-    cursor: pointer;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 14px;
+    cursor: pointer;
     transition: all 0.2s;
+    text-align: center;
 }
 
-button:active {
-    transform: scale(0.98);
+.btn:active {
+    transform: scale(0.97);
 }
 
-.green { background: #22c55e; color: white; }
-.red { background: #ef4444; color: white; }
-.yellow { background: #f59e0b; color: white; }
-.blue { background: #3b82f6; color: white; }
-.purple { background: #8b5cf6; color: white; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-warning { background: var(--warning); color: white; }
+.btn-info { background: var(--info); color: white; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 
-/* TABLE HYBRID - SCROLLABLE */
+.btn-block { width: 100%; }
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* TAB SYSTEM */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    background: var(--card-bg);
+    padding: 6px;
+    border-radius: 16px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.tab-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-pane.active-pane {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* TABLES */
 .table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
 
-.table {
+.data-table {
     width: 100%;
-    font-size: 0.75rem;
     border-collapse: collapse;
-}
-
-.table th {
-    text-align: left;
-    padding: 10px 8px;
-    background: #1e293b;
-    color: #94a3b8;
-    font-weight: 600;
-}
-
-.table td {
-    padding: 10px 8px;
-    border-bottom: 1px solid #1e293b;
-}
-
-/* ALERT SYSTEM */
-.alert {
-    padding: 12px;
-    margin-bottom: 8px;
-    border-radius: 12px;
-    font-weight: bold;
     font-size: 0.85rem;
 }
 
-.alert-red {
-    background: #7f1d1d;
-    border-left: 4px solid #ef4444;
+.data-table th {
+    text-align: left;
+    padding: 12px;
+    background: var(--dark-bg);
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
-.alert-yellow {
-    background: #78350f;
-    border-left: 4px solid #f59e0b;
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
 }
+
+/* BADGES */
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.badge-success { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e; }
+.badge-danger { background: #ef444420; color: #ef4444; border: 1px solid #ef4444; }
+.badge-warning { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b; }
+.badge-info { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f6; }
 
 /* MAP */
 #map {
-    height: 280px;
+    height: 300px;
+    border-radius: 16px;
+    width: 100%;
+}
+
+/* ALERT */
+.alert {
+    padding: 12px 16px;
     border-radius: 12px;
-    width: 100%;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
 }
 
-/* BUTTON GROUP */
-.button-group {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-}
-
-/* MODAL */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    visibility: hidden;
-    opacity: 0;
-    transition: all 0.2s;
-}
-
-.modal-overlay.active {
-    visibility: visible;
-    opacity: 1;
-}
-
-.modal-content {
-    background: #0f172a;
-    border-radius: 24px;
-    padding: 24px;
-    width: 90%;
-    max-width: 400px;
-    border: 1px solid #334155;
-}
-
-/* LOGIN BOX */
-.login-box {
-    max-width: 400px;
-    margin: 0 auto;
-}
+.alert-danger { background: #7f1d1d; border-left: 4px solid var(--danger); }
+.alert-warning { background: #78350f; border-left: 4px solid var(--warning); }
 
 /* TOAST */
-.toast {
+.toast-container {
     position: fixed;
     bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1e293b;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 40px;
-    font-size: 0.8rem;
-    z-index: 2000;
-    animation: fadeInUp 0.3s ease;
+    right: 20px;
+    left: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
 }
 
-.toast.success { background: #22c55e; }
-.toast.error { background: #ef4444; }
-.toast.warning { background: #f59e0b; }
+.toast {
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    border-left: 4px solid var(--primary);
+    pointer-events: auto;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
+.toast.success { border-left-color: var(--primary); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
 /* LOADER */
@@ -294,421 +357,377 @@ button:active {
     to { transform: rotate(360deg); }
 }
 
-/* BADGE */
-.badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 600;
+/* LOGIN CARD */
+.login-card {
+    max-width: 400px;
+    margin: 80px auto;
 }
 
-.badge-green { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e; }
-.badge-red { background: #ef444420; color: #ef4444; border: 1px solid #ef4444; }
-.badge-yellow { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b; }
-
-/* RESPONSIVE - MOBILE FIRST */
+/* RESPONSIVE */
 @media (min-width: 768px) {
-    .container {
-        padding: 20px;
+    .main-content {
+        padding: 24px;
     }
     
     .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
     }
     
     .stat-number {
         font-size: 2.2rem;
     }
     
-    .card {
-        padding: 20px;
-    }
-    
-    .table {
-        font-size: 0.85rem;
-    }
-    
-    #map {
-        height: 350px;
-    }
-    
     .two-columns {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .container {
-        padding: 24px;
+        gap: 20px;
     }
     
-    .stats-grid {
-        grid-template-columns: repeat(4, 1fr);
+    .toast-container {
+        left: auto;
+        right: 20px;
+        min-width: 300px;
+    }
+}
+
+/* MOBILE OPTIMIZATION */
+@media (max-width: 767px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
     }
     
-    #map {
-        height: 400px;
+    .btn-group {
+        flex-direction: column;
     }
-}
-
-/* TWO COLUMNS LAYOUT */
-.two-columns {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-}
-
-@media (min-width: 768px) {
-    .two-columns {
-        grid-template-columns: repeat(2, 1fr);
+    
+    .btn-group .btn {
+        width: 100%;
     }
-}
-
-/* SCROLLBAR */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #1e293b;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 10px;
+    
+    .tab-btn {
+        font-size: 12px;
+        padding: 10px;
+    }
+    
+    .data-table {
+        font-size: 0.75rem;
+    }
+    
+    .data-table th, .data-table td {
+        padding: 8px;
+    }
 }
 </style>
 </head>
-
 <body>
-<div class="container">
 
-<!-- LOGIN SECTION -->
-<div id="loginBox" class="card login-box">
-    <h3 style="text-align:center;">🔐 VMS Command Center</h3>
-    <input id="username" placeholder="Username" value="admin">
-    <input id="password" type="password" placeholder="Password" value="123456">
-    <div class="button-group">
-        <button onclick="login()" class="green" style="flex:1;">LOGIN</button>
-        <button onclick="forceInit()" class="yellow">FORCE INIT</button>
-        <button onclick="checkKV()" class="blue">🔍 KV</button>
-    </div>
-</div>
-
-<!-- MAIN APP -->
-<div id="app" style="display:none">
-
-<!-- LOGOUT BUTTON (PALING ATAS SEBELUM CARD PERTAMA) -->
-<div style="margin-bottom:16px;">
-    <button onclick="logout()" class="red" style="width:100%; padding:12px; font-size:1rem;">🚪 LOGOUT</button>
-</div>
-
-<!-- HYBRID HEADER -->
-<div class="hybrid-header">
-    <div class="logo-area">
-        <h2>🎯 VMS WAR COMMAND</h2>
-        <p>Enterprise Security & Access Control</p>
-    </div>
-    <div class="user-info">
-        <span class="user-badge" id="userRoleDisplay">👤 LOADING...</span>
-        <button onclick="logout()" class="red" style="padding:6px 14px;">LOGOUT</button>
-    </div>
-</div>
-
-<!-- STATS GRID -->
-<div class="stats-grid" id="statsGrid">
-    <div class="stat-card-hybrid">
-        <div class="stat-number" id="statDevices">0</div>
-        <div class="stat-label">Active Devices</div>
-    </div>
-    <div class="stat-card-hybrid">
-        <div class="stat-number" id="statSuspicious">0</div>
-        <div class="stat-label">Suspicious</div>
-    </div>
-    <div class="stat-card-hybrid">
-        <div class="stat-number" id="statLicenses">0</div>
-        <div class="stat-label">Licenses</div>
-    </div>
-    <div class="stat-card-hybrid">
-        <div class="stat-number" id="statAlerts">0</div>
-        <div class="stat-label">Active Alerts</div>
-    </div>
-</div>
-
-<!-- TWO COLUMNS LAYOUT -->
-<div class="two-columns">
-    <!-- LEFT COLUMN -->
-    <div>
-        <!-- LIVE ALERTS -->
-        <div class="card">
-            <h3>🔴 LIVE ALERTS</h3>
-            <div id="alerts"></div>
-        </div>
-        
-        <!-- AUTO BAN CONTROL -->
-        <div class="card">
-            <h3>🚨 AUTO BAN SYSTEM</h3>
-            <button onclick="toggleAutoBan()" id="autoBanBtn" class="yellow" style="width:100%;">AUTO BAN OFF</button>
-        </div>
-        
-        <!-- USER MANAGEMENT -->
-        <div class="card">
-            <h3>👥 USER MANAGEMENT</h3>
-            <input id="newUser" placeholder="New Username">
-            <input id="newPass" type="password" placeholder="New Password">
-            <select id="role">
-                <option>ADMIN</option>
-                <option>OPERATOR</option>
-            </select>
-            <button onclick="addUser()" class="green" style="width:100%;">➕ ADD USER</button>
-            <div style="margin-top:12px;">
-                <div id="userList"></div>
+<div class="app-container">
+    <!-- HEADER -->
+    <div class="header" id="header" style="display: none;">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🎯 VMS WAR COMMAND</h1>
+                <p>Enterprise Security & Access Control</p>
+            </div>
+            <div class="user-section">
+                <span class="user-badge" id="userRoleDisplay">👤 LOADING...</span>
+                <button class="btn btn-danger" onclick="logout()" style="padding: 8px 16px;">🚪 LOGOUT</button>
             </div>
         </div>
-        
-        <!-- CHANGE PASSWORD -->
-        <div class="card">
-            <h3>🔐 CHANGE PASSWORD</h3>
-            <input id="newPassword" type="password" placeholder="New Password">
-            <button onclick="changePassword()" class="yellow" style="width:100%;">UPDATE PASSWORD</button>
-        </div>
     </div>
-    
-    <!-- RIGHT COLUMN -->
-    <div>
-        <!-- DEVICES TABLE -->
-        <div class="card">
-            <h3>📱 DEVICES MONITORING</h3>
-            <div class="table-wrapper">
-                <div id="devices"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent" style="display: none;">
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">📊 DASHBOARD</button>
+            <button class="tab-btn" data-tab="devices">📱 DEVICES</button>
+            <button class="tab-btn" data-tab="users">👥 USERS</button>
+            <button class="tab-btn" data-tab="settings">⚙️ SETTINGS</button>
+        </div>
+
+        <!-- TAB DASHBOARD -->
+        <div id="tab-dashboard" class="tab-pane active-pane">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="statDevices">0</div>
+                    <div class="stat-label">Active Devices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statSuspicious">0</div>
+                    <div class="stat-label">Suspicious</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statLicenses">0</div>
+                    <div class="stat-label">Licenses</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statAlerts">0</div>
+                    <div class="stat-label">Active Alerts</div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔴 LIVE ALERTS</h3>
+                        <button class="btn btn-outline" onclick="refreshAlerts()" style="padding: 6px 12px;">🔄 Refresh</button>
+                    </div>
+                    <div id="alertsList"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🗺️ GPS TRACKING</h3>
+                        <button class="btn btn-outline" onclick="refreshMap()" style="padding: 6px 12px;">📍 Center</button>
+                    </div>
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>📈 ACTIVITY CHART</h3>
+                </div>
+                <canvas id="activityChart" height="80"></canvas>
             </div>
         </div>
-        
-        <!-- GPS MAP -->
-        <div class="card">
-            <h3>🗺️ LIVE GPS TRACKING</h3>
-            <div id="map"></div>
+
+        <!-- TAB DEVICES -->
+        <div id="tab-devices" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📱 DEVICES MONITORING</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-warning" onclick="toggleAutoBan()" id="autoBanBtn">⛔ AUTO BAN OFF</button>
+                        <button class="btn btn-info" onclick="refreshDevices()">🔄 Refresh</button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <div id="devicesTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB USERS -->
+        <div id="tab-users" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <h3>👥 USER MANAGEMENT</h3>
+                </div>
+                <div class="two-columns">
+                    <div>
+                        <input type="text" id="newUsername" placeholder="New Username">
+                        <input type="password" id="newPassword" placeholder="New Password">
+                        <select id="newRole">
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="OPERATOR">OPERATOR</option>
+                        </select>
+                        <button class="btn btn-primary btn-block" onclick="addUser()">➕ ADD USER</button>
+                    </div>
+                    <div>
+                        <div id="usersTable"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3>🔐 CHANGE PASSWORD</h3>
+                </div>
+                <input type="password" id="changePass" placeholder="New Password">
+                <button class="btn btn-warning btn-block" onclick="changePassword()">UPDATE PASSWORD</button>
+            </div>
+        </div>
+
+        <!-- TAB SETTINGS -->
+        <div id="tab-settings" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <h3>⚙️ SYSTEM SETTINGS</h3>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-info" onclick="forceInit()">🔄 FORCE INIT</button>
+                    <button class="btn btn-info" onclick="checkStatus()">🔍 CHECK STATUS</button>
+                    <button class="btn btn-danger" onclick="clearAllData()">🗑️ CLEAR ALL DATA</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3>ℹ️ SYSTEM INFO</h3>
+                </div>
+                <div id="systemInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN CARD -->
+    <div id="loginContainer" class="main-content">
+        <div class="card login-card">
+            <h2 style="text-align:center; margin-bottom:24px;">🔐 VMS Command Center</h2>
+            <input type="text" id="loginUsername" placeholder="Username" value="admin" autocomplete="off">
+            <input type="password" id="loginPassword" placeholder="Password" value="123456">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="login()">LOGIN</button>
+                <button class="btn btn-warning" onclick="forceInit()">FORCE INIT</button>
+            </div>
         </div>
     </div>
 </div>
 
-</div>
-</div>
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
-// ================= CONFIG =================
+// ========== CONFIG ==========
 const BASE_URL = "https://vmsgw.mededsapam.workers.dev";
 let autoBan = false;
 let refreshInterval = null;
+let map = null;
+let markers = {};
+let activityChart = null;
 
-// ================= TOKEN MANAGEMENT =================
-function getToken(){
-    return localStorage.getItem("vms_auth_token");
-}
-
-function setToken(token){
-    if(token){
-        localStorage.setItem("vms_auth_token", token);
-        console.log("[DEBUG] Token saved");
-    } else {
-        localStorage.removeItem("vms_auth_token");
-        console.log("[DEBUG] Token removed");
-    }
-}
-
-function getUserRole(){
-    const role = localStorage.getItem("vms_user_role");
-    return role || "UNKNOWN";
-}
-
-function setUserRole(role){
-    if(role){
-        localStorage.setItem("vms_user_role", role);
-    }
-}
-
-// ================= TOAST NOTIFICATION =================
-function showToast(message, type = "info"){
+// ========== TOAST ==========
+function showToast(message, type = "info") {
+    const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerText = message;
-    document.body.appendChild(toast);
+    toast.innerHTML = message;
+    container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
 
-// ================= SAFE FETCH =================
-async function safeFetch(url, opt = {}) {
+// ========== TOKEN ==========
+function getToken() { return localStorage.getItem('vms_token'); }
+function setToken(token) { 
+    if(token) localStorage.setItem('vms_token', token); 
+    else localStorage.removeItem('vms_token');
+}
+function getUserRole() { return localStorage.getItem('vms_role') || 'UNKNOWN'; }
+function setUserRole(role) { if(role) localStorage.setItem('vms_role', role); }
+
+// ========== API ==========
+async function fetchAPI(path, options = {}) {
     try {
-        opt.headers = opt.headers || {};
+        const headers = { 'Content-Type': 'application/json' };
         const token = getToken();
+        if(token) headers['x-token'] = token;
         
-        if(token){
-            opt.headers["x-token"] = token;
-        }
+        const res = await fetch(BASE_URL + path, { ...options, headers });
         
-        const r = await fetch(url, opt);
-        
-        if(r.status === 401){
-            console.error("[ERROR] 401 Unauthorized");
+        if(res.status === 401) {
             setToken(null);
             setUserRole(null);
-            showToast("Session expired, please login again", "error");
-            location.reload();
+            showToast('Session expired, please login again', 'error');
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('header').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
             return null;
         }
         
-        if(!r.ok){
-            const errorText = await r.text();
-            console.error(`[ERROR] HTTP ${r.status}: ${errorText}`);
-            return null;
-        }
-        
-        return await r.json();
-        
-    } catch(e){
-        console.error("[ERROR] safeFetch exception:", e);
+        return await res.json();
+    } catch(e) {
+        console.error('API Error:', e);
         return null;
     }
 }
 
-// ================= FORCE INIT =================
-async function forceInit(){
-    try{
-        showToast("Initializing system...", "info");
-        const res = await fetch(BASE_URL + "/force-init", {
-            method: "GET",
-            headers: {"Content-Type": "application/json"}
-        });
-        
+// ========== FORCE INIT ==========
+async function forceInit() {
+    showToast('Initializing system...', 'info');
+    try {
+        const res = await fetch(BASE_URL + '/force-init');
         const data = await res.json();
-        
-        if(data && data.ok){
-            showToast(`✅ Init OK! Login with: ${data.username} / ${data.password}`, "success");
-            document.getElementById('username').value = data.username;
-            document.getElementById('password').value = data.password;
+        if(data.ok) {
+            showToast('✅ Init OK! Login with admin/123456', 'success');
+            document.getElementById('loginUsername').value = 'admin';
+            document.getElementById('loginPassword').value = '123456';
         } else {
-            showToast("Force init failed: " + JSON.stringify(data), "error");
+            showToast('Init failed', 'error');
         }
-    } catch(e){
-        console.error("[ERROR] force-init exception:", e);
-        showToast("Error: " + e.message, "error");
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
     }
 }
 
-// ================= CHECK KV STATUS =================
-async function checkKV(){
-    try{
-        const res = await fetch(BASE_URL + "/debug-kv");
+// ========== CHECK STATUS ==========
+async function checkStatus() {
+    try {
+        const res = await fetch(BASE_URL + '/');
         const data = await res.json();
-        
-        let message = `KV Status:\n`;
-        message += `KV Exists: ${data.kv_exists ? '✅' : '❌'}\n`;
-        message += `Write Test: ${data.write_test ? '✅' : '❌'}\n`;
-        message += `Read Test: ${data.read_test ? '✅' : '❌'}\n`;
-        
-        if(data.error){
-            message += `\nError: ${data.error}`;
-        }
-        
-        alert(message);
-        
-        if(!data.kv_exists || !data.write_test || !data.read_test){
-            showToast("⚠️ KV Storage not working properly!", "error");
-        } else {
-            showToast("✅ KV Storage OK", "success");
-        }
-    } catch(e){
-        console.error("[ERROR] checkKV exception:", e);
-        showToast("Cannot check KV status", "error");
+        showToast('Server: ' + (data.version || 'OK'), 'success');
+        document.getElementById('systemInfo').innerHTML = `
+            <p><strong>Version:</strong> ${data.version || 'v10.3'}</p>
+            <p><strong>Status:</strong> Online</p>
+            <p><strong>Mode:</strong> ${data.mode || 'HYBRID'}</p>
+            <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+        `;
+    } catch(e) {
+        showToast('Server offline: ' + e.message, 'error');
     }
 }
 
-// ================= LOGIN =================
-async function login(){
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+// ========== LOGIN ==========
+async function login() {
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
     
-    if(!username || !password){
-        showToast("Please enter username and password", "warning");
+    if(!username || !password) {
+        showToast('Isi username & password', 'warning');
         return;
     }
     
-    try{
-        showToast("Logging in...", "info");
-        
-        const res = await fetch(BASE_URL + "/login", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
+    showToast('Logging in...', 'info');
+    try {
+        const res = await fetch(BASE_URL + '/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
+        const data = await res.json();
         
-        const d = await res.json();
-        
-        if(d && d.ok === true && d.token){
-            setToken(d.token);
-            setUserRole(d.role);
-            showToast(`Welcome ${username} (${d.role})`, "success");
-            init();
+        if(data.ok && data.token) {
+            setToken(data.token);
+            setUserRole(data.role);
+            showToast(`Welcome ${username} (${data.role})`, 'success');
+            
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('header').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('userRoleDisplay').innerHTML = `👑 ${data.role}`;
+            
+            initMap();
+            loadAllData();
+            
+            if(refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(loadAllData, 10000);
         } else {
-            showToast("Login failed: " + (d.error || "Invalid credentials"), "error");
+            showToast('Login failed: ' + (data.error || 'Invalid credentials'), 'error');
         }
-    } catch(e){
-        console.error("[ERROR] Login exception:", e);
-        showToast("Login error: " + e.message, "error");
+    } catch(e) {
+        showToast('Login error: ' + e.message, 'error');
     }
 }
 
-// ================= LOGOUT =================
-function logout(){
-    if(confirm("Yakin logout?")){
-        localStorage.removeItem("vms_auth_token");
-        localStorage.removeItem("vms_user_role");
-        if(refreshInterval){
-            clearInterval(refreshInterval);
-            refreshInterval = null;
-        }
-        showToast("Logged out successfully", "success");
-        document.getElementById('loginBox').style.display = "block";
-        document.getElementById('app').style.display = "none";
-        if(map){
-            map.remove();
-            map = null;
-            markers = {};
-        }
+// ========== LOGOUT ==========
+function logout() {
+    if(confirm('Yakin ingin logout?')) {
+        setToken(null);
+        setUserRole(null);
+        if(refreshInterval) clearInterval(refreshInterval);
+        
+        document.getElementById('loginContainer').style.display = 'block';
+        document.getElementById('header').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'none';
+        
+        if(map) { map.remove(); map = null; markers = {}; }
+        showToast('Logged out successfully', 'success');
     }
 }
 
-// ================= INIT =================
-function init(){
-    document.getElementById('loginBox').style.display = "none";
-    document.getElementById('app').style.display = "block";
-    
-    const role = getUserRole();
-    const roleDisplay = document.getElementById('userRoleDisplay');
-    if(roleDisplay){
-        roleDisplay.innerHTML = `👑 ${role}`;
-    }
-    
-    initMap();
-    loadAll();
-    
-    if(refreshInterval){
-        clearInterval(refreshInterval);
-    }
-    refreshInterval = setInterval(loadAll, 5000);
-}
-
-// ================= MAP =================
-let map;
-let markers = {};
-
-function initMap(){
+// ========== MAP ==========
+function initMap() {
     if(map) return;
     map = L.map('map').setView([-6.2, 106.8], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -716,508 +735,329 @@ function initMap(){
     }).addTo(map);
 }
 
-// ================= LOAD ALL DATA =================
-async function loadAll(){
-    const token = getToken();
-    if(!token){
-        console.warn("[WARN] No token");
-        return;
-    }
-    
-    const data = await safeFetch(BASE_URL + "/admin");
+function refreshMap() {
+    if(map) map.setView([-6.2, 106.8], 11);
+}
+
+// ========== LOAD ALL DATA ==========
+async function loadAllData() {
+    const data = await fetchAPI('/admin');
     if(!data) return;
     
     const devices = data.devices || {};
-    const licenses = data.licenses || {};
     
     // Update stats
-    const deviceCount = Object.keys(devices).length;
-    const suspiciousCount = Object.values(devices).filter(d => d.status === "SUSPICIOUS").length;
-    const alertCount = Object.values(devices).filter(d => d.status === "SUSPICIOUS" || d.status === "WARNING").length;
+    document.getElementById('statDevices').innerText = Object.keys(devices).length;
+    document.getElementById('statSuspicious').innerText = Object.values(devices).filter(d => d.status === 'SUSPICIOUS').length;
+    document.getElementById('statLicenses').innerText = Object.keys(data.licenses || {}).length;
+    document.getElementById('statAlerts').innerText = Object.values(devices).filter(d => d.status === 'SUSPICIOUS' || d.status === 'WARNING').length;
     
-    document.getElementById('statDevices').innerText = deviceCount;
-    document.getElementById('statSuspicious').innerText = suspiciousCount;
-    document.getElementById('statLicenses').innerText = Object.keys(licenses).length;
-    document.getElementById('statAlerts').innerText = alertCount;
-    
-    renderDevices(devices);
+    // Render alerts
     renderAlerts(devices);
+    
+    // Render devices table
+    renderDevicesTable(devices);
+    
+    // Render map
     renderMap(devices);
-    await loadUsers();
+    
+    // Render users table
+    await renderUsersTable();
+    
+    // Update chart
+    updateChart(devices);
 }
 
-// ================= RENDER DEVICES =================
-function renderDevices(devices){
-    const container = document.getElementById('devices');
-    if(!container) return;
-    
-    if(Object.keys(devices).length === 0){
-        container.innerHTML = '<div style="text-align:center;padding:20px;color:#64748b;">No devices connected</div>';
+function renderAlerts(devices) {
+    const container = document.getElementById('alertsList');
+    let html = '';
+    Object.entries(devices).forEach(([id, d]) => {
+        if(d.status === 'SUSPICIOUS') {
+            html += `<div class="alert alert-danger">🚨 ${id.substring(0,25)}... - SUSPICIOUS ACTIVITY</div>`;
+        } else if(d.status === 'WARNING') {
+            html += `<div class="alert alert-warning">⚠️ ${id.substring(0,25)}... - WARNING</div>`;
+        }
+    });
+    container.innerHTML = html || '<div style="text-align:center;padding:20px;color:#94a3b8;">✅ No active alerts</div>';
+}
+
+function renderDevicesTable(devices) {
+    const container = document.getElementById('devicesTable');
+    if(Object.keys(devices).length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">📱 No devices connected</div>';
         return;
     }
     
-    let html = "<table class='table'>";
-    html += "<thead><tr><th>Device</th><th>License</th><th>Status</th><th>Actions</th></tr></thead><tbody>";
+    let html = `<table class="data-table">
+        <thead>
+            <tr><th>Device ID</th><th>License</th><th>Status</th><th>Last Location</th><th>Actions</th></tr>
+        </thead>
+        <tbody>`;
     
     Object.entries(devices).forEach(([id, d]) => {
-        let statusClass = "badge-green";
-        if(d.status === "SUSPICIOUS") statusClass = "badge-red";
-        if(d.status === "WARNING") statusClass = "badge-yellow";
+        let statusClass = 'badge-success';
+        if(d.status === 'SUSPICIOUS') statusClass = 'badge-danger';
+        if(d.status === 'WARNING') statusClass = 'badge-warning';
         
-        if(autoBan && d.status === "SUSPICIOUS"){
-            ban(d.license);
-        }
+        let location = d.lastLocation ? `${d.lastLocation.lat.toFixed(4)}, ${d.lastLocation.lng.toFixed(4)}` : '-';
         
         html += `<tr>
             <td><small>${id.substring(0,16)}...</small></td>
             <td><small>${d.license || 'N/A'}</small></td>
             <td><span class="badge ${statusClass}">${d.status || 'ACTIVE'}</span></td>
+            <td><small>${location}</small></td>
             <td>
-                <div <div style="display: style="display:flex;flex;gap:gap:4px;flex-wrap:wrap;">
-4px;flex-wrap:wrap;">
-                    <button class="red" style                    <button class="red="padding" style="padding:4:4px 8pxpx 8px;font-size:11px;font-size:11px;" onclick;" onclick="banDevice('${d="banDevice('${d.license}').license">B}')">BAN</AN</button>
-                   button>
-                    <button class="yellow <button class="yellow" style="padding:4px 8px" style="padding:4px 8px;font-size:;font-size:11px11px;" onclick;" onclick="unbanDevice('${d.="unbanDevice('${d.license}')">license}')">UNBAN</UNBAN</button>
-                </button>
+                <div class="btn-group" style="gap:5px;">
+                    <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="banDevice('${d.license}')">BAN</button>
+                    <button class="btn btn-warning" style="padding:4px 10px;font-size:11px;" onclick="unbanDevice('${d.license}')">UNBAN</button>
                 </div>
             </td>
-div>
-            </td>
-        </        </tr>tr>`;
-    });
-    
-`;
-    });
-    
-    html += "</tbody></    html += "</tbody></table>";
-    container.innerHTML =table>";
-    container.innerHTML = html;
- html;
-}
-
-// =================}
-
-// ================= RENDER ALER RENDER ALERTS =================
-TS =================
-function renderfunction renderAlerts(devAlertsices){
-    const(devices){
-    const container = document.getElementById('al container = document.getElementById('alerts');
-    iferts');
-    if(!container(!container) return) return;
-    
-    let html =;
-    
-    let html = "";
-    Object. "";
-    Object.entries(entries(devices).forEachdevices).forEach(((([id, d]) => {
-        if[id, d]) => {
-(d.status        if(d.status === " === "SUSPICSUSPICIOUS"){
-            html +=IOUS"){
-            html += `<div class="alert alert `<div class="alert alert-red">🚨 ${id-red">🚨.substring(0, ${id.substring(0,20)}... -20)}... SUSPICIOUS - SUSPICIOUS ACTIVITY ACTIVITY</div</div>`;
->`;
-        }        } else if else if(d.status === "WARNING(d.status === "WARNING"){
-            html"){
-            html += `<div class +=="alert `<div class="alert alert-yellow">⚠️ alert-yellow">⚠️ ${id ${id.substring(0,.substring(0,20)}20)}... -... - WARNING</div WARNING</div>`;
->`;
-        }
-        }
-    });
-    
-    container.innerHTML    });
-    
-    container.innerHTML = html = html || || '<div style '<div style="text-align:center;="text-align:center;padding:20px;color:#647padding:20px;color:#64748b;">✅48b;">✅ No active No active alerts</div>';
-}
-
-// alerts</div>';
-}
-
-// ================= ================= RENDER MAP = RENDER MAP =================
-================
-function renderMap(devices){
-    if(!map)function renderMap(devices){
-    if(!map) return;
- return;
-    
-       
-    Object.entries( Object.entries(devices).forEachdev(([id,ices).forEach(([id, d]) d]) => {
-        if(!d.lastLocation || ! => {
-        if(!d.lastLocation || !d.lastLocation.latd.lastLocation.l || !dat || !d.lastLocation.lng) return.lastLocation.lng) return;
-        
-        const lat =;
-        
-        const d.lastLocation.l lat = d.lastLocation.lat;
-at;
-        const lng        const lng = d.lastLocation = d.lastLocation.lng;
-        
-.lng;
-        
-        let color =        let "#22 color = "#22c55e";
-        ifc55e";
-        if(d.status === "(d.status === "SUSPICSUSPICIOUS")IOUS") color = "#ef4444 color = "#ef";
-       4444";
-        if(d if(d.status === "W.status === "WARNING") color =ARNING") color = "#f "#f59e0b59e0b";
-        
-";
-        
-        if(markers        if(markers[id]){
-[id]){
-            markers[id].setLat            markers[id].setLatLng([latLng([lat, lng]);
-            markers, lng]);
-[id].            markers[id].setStyle({ color: colorsetStyle({ color: color, fillColor:, fillColor: color });
- color });
-        }        } else {
- else {
-            markers            markers[id][id] = L.circle = L.circleMarker([lat,Marker([lat, lng lng], {
-                radius], {
-: 10,
-                radius: 10,
-                color: color,
-                fillColor                color: color,
-               : color fillColor: color,
-               ,
-                fillOpacity: 0.7,
- fillOpacity: 0.7,
-                weight                weight: 2
-:             }).2
-            }).addToaddTo(map).(map).bindPopup(`
-bindPopup(`
-                <b>                <b>${id.substring(0,${id.substring(0,20)}</b><br>
-               20)}</b><br>
-                Status: Status: ${d.status}<br>
-                License: ${d.license || 'N/A'}
-            `);
- ${d.status}<br>
-                License: ${d.license || 'N/A'}
-            `);
-               }
-    }
-    });
-}
-
-// ================= LO });
-}
-
-// ================= LOAD USAD USERS =================
-async functionERS =================
-async function loadUsers loadUsers(){
-   (){
-    const data const data = await safeFetch(BASE = await safeFetch(BASE_URL + "/users_URL + "/users");
-   ");
-    if(!data) if(! return;
-    
-   data) return;
-    
-    const container = document.getElementById(' const container = document.getElementById('userListuserList');
-    if(!container)');
-    if(! return;
-container) return;
-    
-       
-    if(data.length === if(data.length === 0){
- 0){
-               container.innerHTML = container.innerHTML '<div style="text-align: = '<div style="textcenter;padding:10px-align:center;padding:10px;color:#647;color:#64748b;">No48b;">No users</ users</div>';
-        returndiv>';
-        return;
-   ;
-    }
- }
-    
-    let html = "<table class='table'    
-    let html = "<table class='table'><thead><thead><tr><tr><th>Username</th><th>Username><th</th><th>Role>Role</th</th><th><th></th></th></tr></tr></thead><tbody></thead><tbody>";
-    
-    data>";
-    
-    data.forEach(user => {
-.forEach(user => {
-        html +=        html += `<tr>
- `<tr>
-            <td>${user            <td>${user.username}</td>
-           .username}</td>
-            <td><span class <td><span class="badge badge-green">="badge badge-green">${user.role}</span${user.role}</span></td></td>
-            <td>
-           ><button <td><button class=" class="red"red" style="padding:4px style="padding:4px 8 8px;font-sizepx;font-size:11:11px;"px;" onclick="deleteUser('${ onclick="deleteUser('${user.username}')">DELuser.username}')">DEL</button</button></td></td>
-        </tr>
         </tr>`;
     });
     
-   >`;
-    });
- html += "</tbody></table    
-    html += "</tbody>";
-    container.innerHTML></table>";
+    html += '</tbody></table>';
     container.innerHTML = html;
 }
 
- = html;
+function renderMap(devices) {
+    if(!map) initMap();
+    if(!map) return;
+    
+    Object.entries(devices).forEach(([id, d]) => {
+        if(!d.lastLocation || !d.lastLocation.lat || !d.lastLocation.lng) return;
+        
+        const lat = d.lastLocation.lat;
+        const lng = d.lastLocation.lng;
+        let color = '#22c55e';
+        if(d.status === 'SUSPICIOUS') color = '#ef4444';
+        if(d.status === 'WARNING') color = '#f59e0b';
+        
+        if(markers[id]) {
+            markers[id].setLatLng([lat, lng]);
+            markers[id].setStyle({ color: color, fillColor: color });
+        } else {
+            markers[id] = L.circleMarker([lat, lng], {
+                radius: 10,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.7,
+                weight: 2
+            }).addTo(map).bindPopup(`
+                <b>${id.substring(0,20)}</b><br>
+                Status: ${d.status}<br>
+                License: ${d.license || 'N/A'}
+            `);
+        }
+    });
 }
 
-// ================= ACT// ================= ACTIONS =================
-async functionIONS =================
-async function banDevice(license){
-    banDevice(license){
+async function renderUsersTable() {
+    const users = await fetchAPI('/users');
+    const container = document.getElementById('usersTable');
+    
+    if(!users || users.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;">No users</div>';
+        return;
+    }
+    
+    let html = `<table class="data-table">
+        <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+        <tbody>`;
+    
+    users.forEach(u => {
+        html += `<tr>
+            <td>${u.username}</td>
+            <td><span class="badge badge-info">${u.role}</span></td>
+            <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteUser('${u.username}')">DELETE</button></td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateChart(devices) {
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const statusCount = {
+        ACTIVE: 0,
+        WARNING: 0,
+        SUSPICIOUS: 0
+    };
+    
+    Object.values(devices).forEach(d => {
+        const status = d.status || 'ACTIVE';
+        if(statusCount[status] !== undefined) statusCount[status]++;
+        else statusCount.ACTIVE++;
+    });
+    
+    if(activityChart) activityChart.destroy();
+    
+    activityChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Warning', 'Suspicious'],
+            datasets: [{
+                data: [statusCount.ACTIVE, statusCount.WARNING, statusCount.SUSPICIOUS],
+                backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#f1f5f9' } }
+            }
+        }
+    });
+}
+
+// ========== ACTIONS ==========
+async function banDevice(license) {
     if(!license) return;
- if(!license)    const return;
-    const result = result = await safeFetch(B await safeASE_URLFetch(BASE_URL + "/ban", {
- + "/ban", {
-               method: "POST",
-        headers: method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body {"Content-Type": "application/json"},
-        body: JSON.stringify({ license })
-: JSON.stringify({ license })
-    });
-    if(result &&    });
-    if(result && result.ok result.ok){
-       ){
-        showToast("Device showToast("Device banned", "success banned", "success");
-        loadAll();
-    }
-}
-
-");
-        loadAll();
-    }
-}
-
-async functionasync function unbanDevice( unbanDevice(license){
-license){
-    if(!license) return    if(!license) return;
-    const result = await safeFetch(BASE;
-    const result = await safeFetch_URL +(BASE_URL + "/un "/unban", {
-        method:ban", {
-        method: "POST",
-        headers: {"Content "POST",
-        headers:-Type": {"Content-Type": "application "application/json"},
-/json"},
+    const result = await fetchAPI('/ban', {
+        method: 'POST',
         body: JSON.stringify({ license })
     });
-    if        body: JSON.stringify({ license })
+    if(result?.ok) { showToast('Device banned', 'success'); loadAllData(); }
+}
+
+async function unbanDevice(license) {
+    if(!license) return;
+    const result = await fetchAPI('/unban', {
+        method: 'POST',
+        body: JSON.stringify({ license })
     });
-    if(result && result.ok(result && result.ok){
-       ){
-        showToast("Device showToast("Device unbanned unbanned", "success");
-", "success");
-        loadAll();
-        loadAll();
-    }
-    }
+    if(result?.ok) { showToast('Device unbanned', 'success'); loadAllData(); }
 }
 
-async function addUser(){
-}
-
-async function addUser(){
-    const username = document.getElementById    const username = document.getElementById('new('newUser').value;
-User').value;
-    const    const password = document.getElementById password = document.getElementById('new('newPass').value;
-Pass').    const role =value;
-    const role = document.getElementById('role').value document.getElementById('role').value;
+async function addUser() {
+    const username = document.getElementById('newUsername').value;
+    const password = document.getElementById('newPassword').value;
+    const role = document.getElementById('newRole').value;
     
-;
-    
-    if    if(!username(!username || ! || !password){
-        showToast("password){
-        showToast("Username and password required", "Username and password required", "warning");
-        return;
-   warning");
+    if(!username || !password) {
+        showToast('Isi username & password', 'warning');
         return;
     }
     
-    const result = await safe }
-    
-    const result = await safeFetch(BASE_URLFetch(BASE_URL + "/add-user + "/add-user", {
-", {
-        method: "        method: "POST",
-POST",
-        headers: {"        headers: {"Content-TypeContent-Type": "": "application/json"},
-       application/json"},
-        body: body: JSON.stringify({ username JSON.stringify({ username, password, role })
+    const result = await fetchAPI('/add-user', {
+        method: 'POST',
+        body: JSON.stringify({ username, password, role })
     });
     
-, password, role })
-    });
-    
-    if(result && result.ok){
-        showToast(`User ${username    if(result && result.ok){
-        showToast(`User ${username} added`, "success");
-} added`, "success");
-        document        document.getElementById('newUser.getElementById('newUser').value = "";
-        document.getElementById('').value = "";
-        document.getElementById('newPass').value = "";
-newPass').value = "";
-        await        await loadUsers loadUsers();
+    if(result?.ok) {
+        showToast(`User ${username} added`, 'success');
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        await renderUsersTable();
     } else {
-       ();
-    } else {
-        showToast showToast("Failed to add user", "error");
-   ("Failed to add user", "error");
+        showToast('Failed to add user', 'error');
     }
 }
 
- }
-}
-
-async functionasync function deleteUser(username){
- deleteUser(username){
-    if    if(!confirm(`Delete(!confirm user ${username}(`Delete user ${username}?`)) return;
-    
-?`)) return;
-    
-    const result =    const result = await safe await safeFetch(BASE_URLFetch(BASE_URL + "/delete-user", {
- + "/delete-user", {
-        method: "POST",
-        headers: {"        method: "POST",
-        headers: {"Content-Type": "Content-Type": "application/json"},
-        body:application/json"},
-        body: JSON.stringify({ username JSON.stringify({ username })
-    })
+async function deleteUser(username) {
+    if(!confirm(`Delete user ${username}?`)) return;
+    const result = await fetchAPI('/delete-user', {
+        method: 'POST',
+        body: JSON.stringify({ username })
     });
-    
-    if });
-    
-    if(result && result.ok(result && result.ok){
-       ){
-        showToast("User deleted", "success");
-        showToast("User deleted", "success");
-        await load await loadUsers();
+    if(result?.ok) {
+        showToast('User deleted', 'success');
+        await renderUsersTable();
     } else {
-Users();
-    } else {
-        showToast("Delete failed        showToast("Delete failed", "", "error");
+        showToast('Delete failed', 'error');
     }
 }
 
-async function changePassword(){
-    const newPassword = documenterror");
-    }
-}
-
-async function changePassword(){
-    const newPassword.getElementById('newPassword').value;
-    
- = document.getElementById('newPassword').value;
-    
-    if(!newPassword){
-    if(!new        showToast("New passwordPassword){
-        showToast("New password required", required", "warning");
-        return;
- "warning");
+async function changePassword() {
+    const newPassword = document.getElementById('changePass').value;
+    if(!newPassword) {
+        showToast('New password required', 'warning');
         return;
     }
-    }
-    
-    const result = await    
-    const result = await safeFetch(BASE safeFetch(BASE_URL +_URL + "/change-password", {
- "/change-password        method: "POST",
-        headers", {
-        method: "POST",
-        headers: {"Content-Type": ": {"Content-Type": "application/json"},
-        body:application/json"},
-        body: JSON.stringify JSON.stringify({ newPassword })
-({ newPassword })
+    const result = await fetchAPI('/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ newPassword })
     });
-    });
-    
-    if(result    
-    if(result && result && result.ok){
-        show.ok){
-        showToast("Password updated", "Toast("Password updated", "success");
-        document.getElementById('newPasswordsuccess");
-        document.getElementById('newPassword').value = "";
-    }').value = "";
+    if(result?.ok) {
+        showToast('Password updated', 'success');
+        document.getElementById('changePass').value = '';
     } else {
-        showToast("Update failed else {
-        showToast("Update failed", "error");
-    }
-", "error");
+        showToast('Update failed', 'error');
     }
 }
 
-function toggleAutoBan(){
-}
-
-function toggleAutoBan(){
-    auto    autoBan = !autoBan;
-    constBan = !autoBan;
- btn = document.getElementById('auto    const btn = document.getElementById('autoBanBtnBanBtn');
-   ');
-    if(btn){
-        btn.textContent = auto if(btn){
-        btn.textContent = autoBanBan ? "A ? "AUTO BAN ON 🔴" :UTO BAN ON 🔴" : "A "AUTO BAN OFFUTO BAN OFF ⚫";
-        btn ⚫";
-        btn.className = auto.className = autoBan ?Ban ? "red" : "yellow "red" :";
-        "yellow";
-        showToast(`Auto Ban ${ showToast(`Auto Ban ${autoBanautoBan ? "ENAB ? "ENABLED" : "LED" : "DISABDISABLED"}`, "info");
-LED"}`, "info");
+function toggleAutoBan() {
+    autoBan = !autoBan;
+    const btn = document.getElementById('autoBanBtn');
+    if(btn) {
+        btn.innerHTML = autoBan ? '🔴 AUTO BAN ON' : '⛔ AUTO BAN OFF';
+        btn.className = autoBan ? 'btn btn-danger' : 'btn btn-warning';
+        showToast(`Auto Ban ${autoBan ? 'ENABLED' : 'DISABLED'}`, 'info');
     }
 }
 
-// ================= AUTO LOGIN CHECK =================    }
+function refreshDevices() { loadAllData(); }
+function refreshAlerts() { loadAllData(); }
+
+function clearAllData() {
+    if(confirm('⚠️ WARNING: This will clear all data! Continue?')) {
+        localStorage.clear();
+        showToast('Local data cleared', 'success');
+        setTimeout(() => location.reload(), 1000);
+    }
 }
 
-// ================= AUTO LOGIN CHECK =================
-async
-async function autoLoginCheck(){
-    function autoLoginCheck const token = get(){
+// ========== TABS ==========
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active-pane'));
+        document.getElementById(`tab-${tabId}`).classList.add('active-pane');
+    });
+});
+
+// ========== AUTO LOGIN CHECK ==========
+async function autoLoginCheck() {
     const token = getToken();
-    if(token){
-Token();
-    if(token){
-        const        const testResult = await testResult = await safeFetch safeFetch(BASE_URL + "/users(BASE_URL + "/users");
-        if(testResult){
-");
-        if(testResult){
-            init();
-                   init();
+    if(token) {
+        const testResult = await fetchAPI('/users');
+        if(testResult) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('header').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('userRoleDisplay').innerHTML = `👑 ${getUserRole()}`;
+            initMap();
+            loadAllData();
+            refreshInterval = setInterval(loadAllData, 10000);
         } else {
             setToken(null);
-            set } else {
-            setTokenUserRole(null);
-(null);
             setUserRole(null);
         }
     }
 }
 
-//        }
-    }
-}
-
-// Start application
-console.log Start application
-console.log("[DEBUG] VMS("[DEBUG] Command Center v2 VMS Command Center v2.0 - Hybrid Ready");
-.0 - Hybrid Ready");
-autoLoginautoLoginCheck();
-
-// Global functions forCheck();
-
-// Global functions for inline buttons
-window.ban inline buttons
+// ========== EXPOSE GLOBAL FUNCTIONS ==========
+window.forceInit = forceInit;
+window.checkStatus = checkStatus;
+window.login = login;
+window.logout = logout;
 window.banDevice = banDevice;
-windowDevice = banDevice;
-window.unban.unbanDevice = unbanDevice;
-Device = unbanDevice;
-window.deleteUser = deleteUserwindow.deleteUser = deleteUser;
-window.login = login;
-;
-window.login = login;
-window.forceInit = forcewindow.forceInit = forceInit;
-window.checkKV =Init;
-window.check checkKV;
-window.logoutKV = checkKV;
-window.logout = logout = logout;
-window.toggleAutoBan;
-window.toggle = toggleAutoBan;
-windowAutoBan = toggleAutoBan.addUser = addUser;
-window.change;
+window.unbanDevice = unbanDevice;
 window.addUser = addUser;
-Password = changePassword;
+window.deleteUser = deleteUser;
+window.changePassword = changePassword;
+window.toggleAutoBan = toggleAutoBan;
+window.refreshDevices = refreshDevices;
+window.refreshAlerts = refreshAlerts;
+window.refreshMap = refreshMap;
+window.clearAllData = clearAllData;
 
-</window.changePassword = changePasswordscript>
-</body>
-</;
-
+// ========== START ==========
+autoLoginCheck();
 </script>
 </body>
 </html>
-Created By : Apri
