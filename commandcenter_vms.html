@@ -2,119 +2,544 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>VMS WAR COMMAND CENTER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<title>VMS WAR COMMAND CENTER | Hybrid Command Center</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body{font-family:Arial;background:#020617;color:white;margin:0}
-.container{padding:16px}
-.card{background:#0f172a;padding:16px;margin-bottom:12px;border-radius:12px}
-input,select{width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:none}
-button{padding:6px 10px;border:none;border-radius:6px;cursor:pointer}
-.green{background:#22c55e}
-.red{background:#ef4444}
-.yellow{background:#f59e0b}
-.table{width:100%;font-size:12px}
-.table td{padding:6px;border-bottom:1px solid #1e293b}
-.alert{padding:10px;margin-bottom:8px;border-radius:8px;font-weight:bold;}
-.alert-red{background:#7f1d1d}
-.alert-yellow{background:#78350f}
-#map{height:250px;border-radius:10px}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #020617;
+    color: white;
+}
+
+/* ================= HYBRID LAYOUT ================= */
+.container {
+    padding: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* HEADER HYBRID */
+.hybrid-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    border: 1px solid #334155;
+}
+
+.logo-area h2 {
+    font-size: 1.2rem;
+    color: #22c55e;
+}
+
+.logo-area p {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.user-badge {
+    background: #1e293b;
+    padding: 6px 14px;
+    border-radius: 40px;
+    font-size: 0.8rem;
+    border: 1px solid #334155;
+}
+
+/* STATS GRID HYBRID */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.stat-card-hybrid {
+    background: #0f172a;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid #1e293b;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #22c55e;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+/* CARD SYSTEM */
+.card {
+    background: #0f172a;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+    border: 1px solid #1e293b;
+}
+
+.card h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* FORM ELEMENTS */
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: white;
+    font-size: 0.9rem;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #22c55e;
+}
+
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.green { background: #22c55e; color: white; }
+.red { background: #ef4444; color: white; }
+.yellow { background: #f59e0b; color: white; }
+.blue { background: #3b82f6; color: white; }
+.purple { background: #8b5cf6; color: white; }
+
+/* TABLE HYBRID - SCROLLABLE */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    width: 100%;
+    font-size: 0.75rem;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 10px 8px;
+    background: #1e293b;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #1e293b;
+}
+
+/* ALERT SYSTEM */
+.alert {
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.alert-red {
+    background: #7f1d1d;
+    border-left: 4px solid #ef4444;
+}
+
+.alert-yellow {
+    background: #78350f;
+    border-left: 4px solid #f59e0b;
+}
+
+/* MAP */
+#map {
+    height: 280px;
+    border-radius: 12px;
+    width: 100%;
+}
+
+/* BUTTON GROUP */
+.button-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+/* MODAL */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.modal-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal-content {
+    background: #0f172a;
+    border-radius: 24px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid #334155;
+}
+
+/* LOGIN BOX */
+.login-box {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* TOAST */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 40px;
+    font-size: 0.8rem;
+    z-index: 2000;
+    animation: fadeInUp 0.3s ease;
+}
+
+.toast.success { background: #22c55e; }
+.toast.error { background: #ef4444; }
+.toast.warning { background: #f59e0b; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* LOADER */
+.loader {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid white;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* BADGE */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.badge-green { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e; }
+.badge-red { background: #ef444420; color: #ef4444; border: 1px solid #ef4444; }
+.badge-yellow { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b; }
+
+/* RESPONSIVE - MOBILE FIRST */
+@media (min-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    
+    .stat-number {
+        font-size: 2.2rem;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .table {
+        font-size: 0.85rem;
+    }
+    
+    #map {
+        height: 350px;
+    }
+    
+    .two-columns {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        padding: 24px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    #map {
+        height: 400px;
+    }
+}
+
+/* TWO COLUMNS LAYOUT */
+.two-columns {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 768px) {
+    .two-columns {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 10px;
+}
 </style>
 </head>
 
 <body>
 <div class="container">
 
-<div id="loginBox" class="card">
-<h3>Login</h3>
-<input id="username" placeholder="admin" value="admin">
-<input id="password" type="password" placeholder="123456" value="123456">
-<button onclick="login()" class="green">LOGIN</button>
-<button onclick="forceInit()" class="yellow" style="margin-top:10px;">⚠️ FORCE INIT (First Time Setup)</button>
-<button onclick="checkKV()" style="background:#6366f1; margin-top:5px;">🔍 Check KV Status</button>
+<!-- LOGIN SECTION -->
+<div id="loginBox" class="card login-box">
+    <h3 style="text-align:center;">🔐 VMS Command Center</h3>
+    <input id="username" placeholder="Username" value="admin">
+    <input id="password" type="password" placeholder="Password" value="123456">
+    <div class="button-group">
+        <button onclick="login()" class="green" style="flex:1;">LOGIN</button>
+        <button onclick="forceInit()" class="yellow">FORCE INIT</button>
+        <button onclick="checkKV()" class="blue">🔍 KV</button>
+    </div>
 </div>
 
+<!-- MAIN APP -->
 <div id="app" style="display:none">
 
-<div class="card">
-<h3>System Stats</h3>
-<div id="stats"></div>
+<!-- LOGOUT BUTTON (PALING ATAS SEBELUM CARD PERTAMA) -->
+<div style="margin-bottom:16px;">
+    <button onclick="logout()" class="red" style="width:100%; padding:12px; font-size:1rem;">🚪 LOGOUT</button>
 </div>
 
-<div class="card">
-<h3>🔴 LIVE ALERT</h3>
-<div id="alerts"></div>
+<!-- HYBRID HEADER -->
+<div class="hybrid-header">
+    <div class="logo-area">
+        <h2>🎯 VMS WAR COMMAND</h2>
+        <p>Enterprise Security & Access Control</p>
+    </div>
+    <div class="user-info">
+        <span class="user-badge" id="userRoleDisplay">👤 LOADING...</span>
+        <button onclick="logout()" class="red" style="padding:6px 14px;">LOGOUT</button>
+    </div>
 </div>
 
-<div class="card">
-<h3>Devices</h3>
-<div id="devices"></div>
+<!-- STATS GRID -->
+<div class="stats-grid" id="statsGrid">
+    <div class="stat-card-hybrid">
+        <div class="stat-number" id="statDevices">0</div>
+        <div class="stat-label">Active Devices</div>
+    </div>
+    <div class="stat-card-hybrid">
+        <div class="stat-number" id="statSuspicious">0</div>
+        <div class="stat-label">Suspicious</div>
+    </div>
+    <div class="stat-card-hybrid">
+        <div class="stat-number" id="statLicenses">0</div>
+        <div class="stat-label">Licenses</div>
+    </div>
+    <div class="stat-card-hybrid">
+        <div class="stat-number" id="statAlerts">0</div>
+        <div class="stat-label">Active Alerts</div>
+    </div>
 </div>
 
-<div class="card">
-<h3>🗺️ LIVE GPS MAP</h3>
-<div id="map"></div>
-</div>
-
-<div class="card">
-<h3>🚨 AUTO BAN</h3>
-<button onclick="toggleAutoBan()" id="autoBanBtn" class="yellow">AUTO BAN OFF</button>
-</div>
-
-<div class="card">
-<h3>User</h3>
-<input id="newUser" placeholder="username">
-<input id="newPass" placeholder="password" type="password">
-<select id="role">
-<option>ADMIN</option>
-<option>OPERATOR</option>
-</select>
-<button onclick="addUser()" class="green">ADD</button>
-<div id="userList"></div>
-</div>
-
-<div class="card">
-<h3>🔐 Change Password</h3>
-<input id="newPassword" type="password" placeholder="new password">
-<button onclick="changePassword()" class="yellow">UPDATE PASSWORD</button>
+<!-- TWO COLUMNS LAYOUT -->
+<div class="two-columns">
+    <!-- LEFT COLUMN -->
+    <div>
+        <!-- LIVE ALERTS -->
+        <div class="card">
+            <h3>🔴 LIVE ALERTS</h3>
+            <div id="alerts"></div>
+        </div>
+        
+        <!-- AUTO BAN CONTROL -->
+        <div class="card">
+            <h3>🚨 AUTO BAN SYSTEM</h3>
+            <button onclick="toggleAutoBan()" id="autoBanBtn" class="yellow" style="width:100%;">AUTO BAN OFF</button>
+        </div>
+        
+        <!-- USER MANAGEMENT -->
+        <div class="card">
+            <h3>👥 USER MANAGEMENT</h3>
+            <input id="newUser" placeholder="New Username">
+            <input id="newPass" type="password" placeholder="New Password">
+            <select id="role">
+                <option>ADMIN</option>
+                <option>OPERATOR</option>
+            </select>
+            <button onclick="addUser()" class="green" style="width:100%;">➕ ADD USER</button>
+            <div style="margin-top:12px;">
+                <div id="userList"></div>
+            </div>
+        </div>
+        
+        <!-- CHANGE PASSWORD -->
+        <div class="card">
+            <h3>🔐 CHANGE PASSWORD</h3>
+            <input id="newPassword" type="password" placeholder="New Password">
+            <button onclick="changePassword()" class="yellow" style="width:100%;">UPDATE PASSWORD</button>
+        </div>
+    </div>
+    
+    <!-- RIGHT COLUMN -->
+    <div>
+        <!-- DEVICES TABLE -->
+        <div class="card">
+            <h3>📱 DEVICES MONITORING</h3>
+            <div class="table-wrapper">
+                <div id="devices"></div>
+            </div>
+        </div>
+        
+        <!-- GPS MAP -->
+        <div class="card">
+            <h3>🗺️ LIVE GPS TRACKING</h3>
+            <div id="map"></div>
+        </div>
+    </div>
 </div>
 
 </div>
 </div>
 
 <script>
-
 // ================= CONFIG =================
 const BASE_URL = "https://vmsgw.mededsapam.workers.dev";
 let autoBan = false;
+let refreshInterval = null;
 
-// 🔥 FIX TOKEN ANDROID - PAKAI LOCALSTORAGE LANGSUNG
+// ================= TOKEN MANAGEMENT =================
 function getToken(){
-    const token = localStorage.getItem("vms_auth_token");
-    console.log("[DEBUG] getToken() ->", token ? token.substring(0,20)+"..." : "NULL");
-    return token;
+    return localStorage.getItem("vms_auth_token");
 }
 
 function setToken(token){
     if(token){
         localStorage.setItem("vms_auth_token", token);
         console.log("[DEBUG] Token saved");
-    }else{
+    } else {
         localStorage.removeItem("vms_auth_token");
         console.log("[DEBUG] Token removed");
     }
 }
 
-let map;
-let markers = {};
+function getUserRole(){
+    const role = localStorage.getItem("vms_user_role");
+    return role || "UNKNOWN";
+}
 
-// ================= MAP =================
-function initMap(){
-    map = L.map('map').setView([-6.2,106.8], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+function setUserRole(role){
+    if(role){
+        localStorage.setItem("vms_user_role", role);
+    }
+}
+
+// ================= TOAST NOTIFICATION =================
+function showToast(message, type = "info"){
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 // ================= SAFE FETCH =================
@@ -127,14 +552,13 @@ async function safeFetch(url, opt = {}) {
             opt.headers["x-token"] = token;
         }
         
-        console.log(`[DEBUG] safeFetch: ${url}`, { hasToken: !!token });
-        
         const r = await fetch(url, opt);
         
         if(r.status === 401){
-            console.error("[ERROR] 401 Unauthorized - Token invalid/expired");
+            console.error("[ERROR] 401 Unauthorized");
             setToken(null);
-            alert("Session expired. Please login again.");
+            setUserRole(null);
+            showToast("Session expired, please login again", "error");
             location.reload();
             return null;
         }
@@ -156,25 +580,24 @@ async function safeFetch(url, opt = {}) {
 // ================= FORCE INIT =================
 async function forceInit(){
     try{
-        console.log("[DEBUG] Calling force-init...");
+        showToast("Initializing system...", "info");
         const res = await fetch(BASE_URL + "/force-init", {
             method: "GET",
             headers: {"Content-Type": "application/json"}
         });
         
         const data = await res.json();
-        console.log("[DEBUG] force-init response:", data);
         
         if(data && data.ok){
-            alert(`✅ Database initialized!\nUsername: ${data.username}\nPassword: ${data.password}`);
+            showToast(`✅ Init OK! Login with: ${data.username} / ${data.password}`, "success");
             document.getElementById('username').value = data.username;
             document.getElementById('password').value = data.password;
         } else {
-            alert("Force init failed: " + JSON.stringify(data));
+            showToast("Force init failed: " + JSON.stringify(data), "error");
         }
     } catch(e){
         console.error("[ERROR] force-init exception:", e);
-        alert("Error: " + e.message);
+        showToast("Error: " + e.message, "error");
     }
 }
 
@@ -183,7 +606,6 @@ async function checkKV(){
     try{
         const res = await fetch(BASE_URL + "/debug-kv");
         const data = await res.json();
-        console.log("[DEBUG] KV Status:", data);
         
         let message = `KV Status:\n`;
         message += `KV Exists: ${data.kv_exists ? '✅' : '❌'}\n`;
@@ -197,11 +619,13 @@ async function checkKV(){
         alert(message);
         
         if(!data.kv_exists || !data.write_test || !data.read_test){
-            console.error("[CRITICAL] KV Storage not working properly!");
+            showToast("⚠️ KV Storage not working properly!", "error");
+        } else {
+            showToast("✅ KV Storage OK", "success");
         }
     } catch(e){
         console.error("[ERROR] checkKV exception:", e);
-        alert("Cannot check KV status: " + e.message);
+        showToast("Cannot check KV status", "error");
     }
 }
 
@@ -211,334 +635,589 @@ async function login(){
     const password = document.getElementById('password').value;
     
     if(!username || !password){
-        alert("Please enter username and password");
+        showToast("Please enter username and password", "warning");
         return;
     }
     
     try{
-        console.log("[DEBUG] Login attempt for:", username);
+        showToast("Logging in...", "info");
         
         const res = await fetch(BASE_URL + "/login", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
+            body: JSON.stringify({ username, password })
         });
         
         const d = await res.json();
-        console.log("[DEBUG] Login response:", { ok: d.ok, hasToken: !!d.token, role: d.role });
         
         if(d && d.ok === true && d.token){
             setToken(d.token);
-            console.log("[DEBUG] Token saved, initializing app...");
+            setUserRole(d.role);
+            showToast(`Welcome ${username} (${d.role})`, "success");
             init();
         } else {
-            console.error("[ERROR] Login failed:", d);
-            alert("LOGIN GAGAL: " + (d.error || "Invalid credentials"));
+            showToast("Login failed: " + (d.error || "Invalid credentials"), "error");
         }
     } catch(e){
         console.error("[ERROR] Login exception:", e);
-        alert("ERROR LOGIN: " + e.message);
+        showToast("Login error: " + e.message, "error");
+    }
+}
+
+// ================= LOGOUT =================
+function logout(){
+    if(confirm("Yakin logout?")){
+        localStorage.removeItem("vms_auth_token");
+        localStorage.removeItem("vms_user_role");
+        if(refreshInterval){
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+        showToast("Logged out successfully", "success");
+        document.getElementById('loginBox').style.display = "block";
+        document.getElementById('app').style.display = "none";
+        if(map){
+            map.remove();
+            map = null;
+            markers = {};
+        }
     }
 }
 
 // ================= INIT =================
 function init(){
-    const loginBox = document.getElementById('loginBox');
-    const app = document.getElementById('app');
+    document.getElementById('loginBox').style.display = "none";
+    document.getElementById('app').style.display = "block";
     
-    if(loginBox) loginBox.style.display = "none";
-    if(app) app.style.display = "block";
+    const role = getUserRole();
+    const roleDisplay = document.getElementById('userRoleDisplay');
+    if(roleDisplay){
+        roleDisplay.innerHTML = `👑 ${role}`;
+    }
     
     initMap();
     loadAll();
     
-    // Auto refresh setiap 5 detik
-    if(window.refreshInterval){
-        clearInterval(window.refreshInterval);
+    if(refreshInterval){
+        clearInterval(refreshInterval);
     }
-    window.refreshInterval = setInterval(loadAll, 5000);
+    refreshInterval = setInterval(loadAll, 5000);
 }
 
-// ================= LOAD =================
+// ================= MAP =================
+let map;
+let markers = {};
+
+function initMap(){
+    if(map) return;
+    map = L.map('map').setView([-6.2, 106.8], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+}
+
+// ================= LOAD ALL DATA =================
 async function loadAll(){
     const token = getToken();
     if(!token){
-        console.warn("[WARN] No token, redirecting to login");
-        location.reload();
+        console.warn("[WARN] No token");
         return;
     }
     
     const data = await safeFetch(BASE_URL + "/admin");
-    if(!data){
-        console.error("[ERROR] Failed to load admin data");
-        return;
-    }
+    if(!data) return;
     
-    console.log("[DEBUG] Admin data loaded:", { 
-        devices: Object.keys(data.devices || {}).length,
-        licenses: Object.keys(data.licenses || {}).length
-    });
+    const devices = data.devices || {};
+    const licenses = data.licenses || {};
     
-    renderStats(data);
-    renderDevices(data.devices || {});
-    renderAlerts(data.devices || {});
-    renderMap(data.devices || {});
+    // Update stats
+    const deviceCount = Object.keys(devices).length;
+    const suspiciousCount = Object.values(devices).filter(d => d.status === "SUSPICIOUS").length;
+    const alertCount = Object.values(devices).filter(d => d.status === "SUSPICIOUS" || d.status === "WARNING").length;
+    
+    document.getElementById('statDevices').innerText = deviceCount;
+    document.getElementById('statSuspicious').innerText = suspiciousCount;
+    document.getElementById('statLicenses').innerText = Object.keys(licenses).length;
+    document.getElementById('statAlerts').innerText = alertCount;
+    
+    renderDevices(devices);
+    renderAlerts(devices);
+    renderMap(devices);
     await loadUsers();
 }
 
-// ================= LOAD USERS =================
-async function loadUsers(){
-    const data = await safeFetch(BASE_URL + "/users");
-    if(!data) return;
+// ================= RENDER DEVICES =================
+function renderDevices(devices){
+    const container = document.getElementById('devices');
+    if(!container) return;
     
-    const userList = document.getElementById('userList');
-    if(!userList) return;
-    
-    let html = "<table class='table'><tr><th>Username</th><th>Role</th><th>Action</th></tr>";
-    
-    data.forEach(user => {
-        html += `<tr>
-            <td>${user.username}</td>
-            <td>${user.role}</td>
-            <td><button class="red" onclick="deleteUser('${user.username}')">DELETE</button></td>
-        </tr>`;
-    });
-    
-    html += "</table>";
-    userList.innerHTML = html;
-}
-
-// ================= DELETE USER =================
-async function deleteUser(username){
-    if(!confirm(`Delete user ${username}?`)) return;
-    
-    const result = await safeFetch(BASE_URL + "/delete-user", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username: username })
-    });
-    
-    if(result && result.ok){
-        alert("User deleted");
-        await loadUsers();
-    } else {
-        alert("Delete failed");
+    if(Object.keys(devices).length === 0){
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:#64748b;">No devices connected</div>';
+        return;
     }
-}
-
-// ================= STATS =================
-function renderStats(d){
-    const statsDiv = document.getElementById('stats');
-    if(statsDiv){
-        statsDiv.innerHTML = `
-            Devices: ${Object.keys(d.devices || {}).length}<br>
-            Licenses: ${Object.keys(d.licenses || {}).length}
-        `;
-    }
-}
-
-// ================= ALERT =================
-function renderAlerts(dev){
-    const alertsDiv = document.getElementById('alerts');
-    if(!alertsDiv) return;
     
-    let html="";
-    Object.entries(dev).forEach(([id,d])=>{
-        if(d.status==="SUSPICIOUS"){
-            html+=`<div class="alert alert-red">⚠️ ${id} - SUSPICIOUS</div>`;
-        }
-        if(d.status==="WARNING"){
-            html+=`<div class="alert alert-yellow">⚠️ ${id} - WARNING</div>`;
-        }
-    });
-    alertsDiv.innerHTML = html || "✅ NO ALERT";
-}
-
-// ================= DEVICES =================
-function renderDevices(dev){
-    const devicesDiv = document.getElementById('devices');
-    if(!devicesDiv) return;
+    let html = "<table class='table'>";
+    html += "<thead><tr><th>Device</th><th>License</th><th>Status</th><th>Actions</th></tr></thead><tbody>";
     
-    let html="<table class='table'><tr><th>Device ID</th><th>License</th><th>Status</th><th>Actions</th></tr>";
-    
-    Object.entries(dev).forEach(([id,d])=>{
+    Object.entries(devices).forEach(([id, d]) => {
+        let statusClass = "badge-green";
+        if(d.status === "SUSPICIOUS") statusClass = "badge-red";
+        if(d.status === "WARNING") statusClass = "badge-yellow";
         
-        let color = "green";
-        if(d.status==="SUSPICIOUS") color = "red";
-        if(d.status==="WARNING") color = "orange";
-        if(d.status==="BANNED") color = "red";
-        
-        if(autoBan && d.status==="SUSPICIOUS"){
+        if(autoBan && d.status === "SUSPICIOUS"){
             ban(d.license);
         }
         
-        html+=`
-        <tr>
-            <td>${id.substring(0,20)}...</td>
-            <td>${d.license || 'N/A'}</td>
-            <td><span style="color:${color};font-weight:bold;">${d.status || 'UNKNOWN'}</span></td>
+        html += `<tr>
+            <td><small>${id.substring(0,16)}...</small></td>
+            <td><small>${d.license || 'N/A'}</small></td>
+            <td><span class="badge ${statusClass}">${d.status || 'ACTIVE'}</span></td>
             <td>
-                <button class="red" onclick="ban('${d.license}')">BAN</button>
-                <button class="yellow" onclick="unban('${d.license}')">UNBAN</button>
-                <button onclick="resetDevice('${id}')">RESET</button>
+                <div <div style="display: style="display:flex;flex;gap:gap:4px;flex-wrap:wrap;">
+4px;flex-wrap:wrap;">
+                    <button class="red" style                    <button class="red="padding" style="padding:4:4px 8pxpx 8px;font-size:11px;font-size:11px;" onclick;" onclick="banDevice('${d="banDevice('${d.license}').license">B}')">BAN</AN</button>
+                   button>
+                    <button class="yellow <button class="yellow" style="padding:4px 8px" style="padding:4px 8px;font-size:;font-size:11px11px;" onclick;" onclick="unbanDevice('${d.="unbanDevice('${d.license}')">license}')">UNBAN</UNBAN</button>
+                </button>
+                </div>
             </td>
-        </tr>
-        `;
+div>
+            </td>
+        </        </tr>tr>`;
     });
     
-    html += "</table>";
-    devicesDiv.innerHTML = html;
+`;
+    });
+    
+    html += "</tbody></    html += "</tbody></table>";
+    container.innerHTML =table>";
+    container.innerHTML = html;
+ html;
 }
 
-// ================= MAP =================
-function renderMap(dev){
-    if(!map) return;
+// =================}
+
+// ================= RENDER ALER RENDER ALERTS =================
+TS =================
+function renderfunction renderAlerts(devAlertsices){
+    const(devices){
+    const container = document.getElementById('al container = document.getElementById('alerts');
+    iferts');
+    if(!container(!container) return) return;
     
-    Object.entries(dev).forEach(([id,d])=>{
-        if(!d.lastLocation || !d.lastLocation.lat || !d.lastLocation.lng) return;
-        
-        const lat = d.lastLocation.lat;
-        const lng = d.lastLocation.lng;
-        
-        let color = "green";
-        if(d.status==="SUSPICIOUS") color="red";
-        if(d.status==="WARNING") color="orange";
-        
-        if(markers[id]){
-            markers[id].setLatLng([lat,lng]);
-            markers[id].setStyle({color: color, fillColor: color});
-        } else {
-            markers[id] = L.circleMarker([lat,lng],{
-                radius:8,
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.7
-            }).addTo(map).bindPopup(`${id}<br>Status: ${d.status}`);
+    let html =;
+    
+    let html = "";
+    Object. "";
+    Object.entries(entries(devices).forEachdevices).forEach(((([id, d]) => {
+        if[id, d]) => {
+(d.status        if(d.status === " === "SUSPICSUSPICIOUS"){
+            html +=IOUS"){
+            html += `<div class="alert alert `<div class="alert alert-red">🚨 ${id-red">🚨.substring(0, ${id.substring(0,20)}... -20)}... SUSPICIOUS - SUSPICIOUS ACTIVITY ACTIVITY</div</div>`;
+>`;
+        }        } else if else if(d.status === "WARNING(d.status === "WARNING"){
+            html"){
+            html += `<div class +=="alert `<div class="alert alert-yellow">⚠️ alert-yellow">⚠️ ${id ${id.substring(0,.substring(0,20)}20)}... -... - WARNING</div WARNING</div>`;
+>`;
+        }
         }
     });
+    
+    container.innerHTML    });
+    
+    container.innerHTML = html = html || || '<div style '<div style="text-align:center;="text-align:center;padding:20px;color:#647padding:20px;color:#64748b;">✅48b;">✅ No active No active alerts</div>';
 }
 
-// ================= ACTION =================
-async function ban(license){
+// alerts</div>';
+}
+
+// ================= ================= RENDER MAP = RENDER MAP =================
+================
+function renderMap(devices){
+    if(!map)function renderMap(devices){
+    if(!map) return;
+ return;
+    
+       
+    Object.entries( Object.entries(devices).forEachdev(([id,ices).forEach(([id, d]) d]) => {
+        if(!d.lastLocation || ! => {
+        if(!d.lastLocation || !d.lastLocation.latd.lastLocation.l || !dat || !d.lastLocation.lng) return.lastLocation.lng) return;
+        
+        const lat =;
+        
+        const d.lastLocation.l lat = d.lastLocation.lat;
+at;
+        const lng        const lng = d.lastLocation = d.lastLocation.lng;
+        
+.lng;
+        
+        let color =        let "#22 color = "#22c55e";
+        ifc55e";
+        if(d.status === "(d.status === "SUSPICSUSPICIOUS")IOUS") color = "#ef4444 color = "#ef";
+       4444";
+        if(d if(d.status === "W.status === "WARNING") color =ARNING") color = "#f "#f59e0b59e0b";
+        
+";
+        
+        if(markers        if(markers[id]){
+[id]){
+            markers[id].setLat            markers[id].setLatLng([latLng([lat, lng]);
+            markers, lng]);
+[id].            markers[id].setStyle({ color: colorsetStyle({ color: color, fillColor:, fillColor: color });
+ color });
+        }        } else {
+ else {
+            markers            markers[id][id] = L.circle = L.circleMarker([lat,Marker([lat, lng lng], {
+                radius], {
+: 10,
+                radius: 10,
+                color: color,
+                fillColor                color: color,
+               : color fillColor: color,
+               ,
+                fillOpacity: 0.7,
+ fillOpacity: 0.7,
+                weight                weight: 2
+:             }).2
+            }).addToaddTo(map).(map).bindPopup(`
+bindPopup(`
+                <b>                <b>${id.substring(0,${id.substring(0,20)}</b><br>
+               20)}</b><br>
+                Status: Status: ${d.status}<br>
+                License: ${d.license || 'N/A'}
+            `);
+ ${d.status}<br>
+                License: ${d.license || 'N/A'}
+            `);
+               }
+    }
+    });
+}
+
+// ================= LO });
+}
+
+// ================= LOAD USAD USERS =================
+async functionERS =================
+async function loadUsers loadUsers(){
+   (){
+    const data const data = await safeFetch(BASE = await safeFetch(BASE_URL + "/users_URL + "/users");
+   ");
+    if(!data) if(! return;
+    
+   data) return;
+    
+    const container = document.getElementById(' const container = document.getElementById('userListuserList');
+    if(!container)');
+    if(! return;
+container) return;
+    
+       
+    if(data.length === if(data.length === 0){
+ 0){
+               container.innerHTML = container.innerHTML '<div style="text-align: = '<div style="textcenter;padding:10px-align:center;padding:10px;color:#647;color:#64748b;">No48b;">No users</ users</div>';
+        returndiv>';
+        return;
+   ;
+    }
+ }
+    
+    let html = "<table class='table'    
+    let html = "<table class='table'><thead><thead><tr><tr><th>Username</th><th>Username><th</th><th>Role>Role</th</th><th><th></th></th></tr></tr></thead><tbody></thead><tbody>";
+    
+    data>";
+    
+    data.forEach(user => {
+.forEach(user => {
+        html +=        html += `<tr>
+ `<tr>
+            <td>${user            <td>${user.username}</td>
+           .username}</td>
+            <td><span class <td><span class="badge badge-green">="badge badge-green">${user.role}</span${user.role}</span></td></td>
+            <td>
+           ><button <td><button class=" class="red"red" style="padding:4px style="padding:4px 8 8px;font-sizepx;font-size:11:11px;"px;" onclick="deleteUser('${ onclick="deleteUser('${user.username}')">DELuser.username}')">DEL</button</button></td></td>
+        </tr>
+        </tr>`;
+    });
+    
+   >`;
+    });
+ html += "</tbody></table    
+    html += "</tbody>";
+    container.innerHTML></table>";
+    container.innerHTML = html;
+}
+
+ = html;
+}
+
+// ================= ACT// ================= ACTIONS =================
+async functionIONS =================
+async function banDevice(license){
+    banDevice(license){
     if(!license) return;
-    const result = await safeFetch(BASE_URL+"/ban", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({license})
+ if(!license)    const return;
+    const result = result = await safeFetch(B await safeASE_URLFetch(BASE_URL + "/ban", {
+ + "/ban", {
+               method: "POST",
+        headers: method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body {"Content-Type": "application/json"},
+        body: JSON.stringify({ license })
+: JSON.stringify({ license })
     });
-    if(result && result.ok) loadAll();
+    if(result &&    });
+    if(result && result.ok result.ok){
+       ){
+        showToast("Device showToast("Device banned", "success banned", "success");
+        loadAll();
+    }
 }
 
-async function unban(license){
-    if(!license) return;
-    const result = await safeFetch(BASE_URL+"/unban", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({license})
-    });
-    if(result && result.ok) loadAll();
+");
+        loadAll();
+    }
 }
 
-async function resetDevice(id){
-    if(!id) return;
-    const result = await safeFetch(BASE_URL+"/reset-device", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({deviceId:id})
+async functionasync function unbanDevice( unbanDevice(license){
+license){
+    if(!license) return    if(!license) return;
+    const result = await safeFetch(BASE;
+    const result = await safeFetch_URL +(BASE_URL + "/un "/unban", {
+        method:ban", {
+        method: "POST",
+        headers: {"Content "POST",
+        headers:-Type": {"Content-Type": "application "application/json"},
+/json"},
+        body: JSON.stringify({ license })
     });
-    if(result && result.ok) loadAll();
+    if        body: JSON.stringify({ license })
+    });
+    if(result && result.ok(result && result.ok){
+       ){
+        showToast("Device showToast("Device unbanned unbanned", "success");
+", "success");
+        loadAll();
+        loadAll();
+    }
+    }
 }
 
-// ================= USER =================
 async function addUser(){
-    const newUser = document.getElementById('newUser');
-    const newPass = document.getElementById('newPass');
-    const role = document.getElementById('role');
+}
+
+async function addUser(){
+    const username = document.getElementById    const username = document.getElementById('new('newUser').value;
+User').value;
+    const    const password = document.getElementById password = document.getElementById('new('newPass').value;
+Pass').    const role =value;
+    const role = document.getElementById('role').value document.getElementById('role').value;
     
-    if(!newUser.value || !newPass.value){
-        alert("Username and password required");
+;
+    
+    if    if(!username(!username || ! || !password){
+        showToast("password){
+        showToast("Username and password required", "Username and password required", "warning");
+        return;
+   warning");
         return;
     }
     
-    const result = await safeFetch(BASE_URL+"/add-user", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            username: newUser.value,
-            password: newPass.value,
-            role: role.value
-        })
+    const result = await safe }
+    
+    const result = await safeFetch(BASE_URLFetch(BASE_URL + "/add-user + "/add-user", {
+", {
+        method: "        method: "POST",
+POST",
+        headers: {"        headers: {"Content-TypeContent-Type": "": "application/json"},
+       application/json"},
+        body: body: JSON.stringify({ username JSON.stringify({ username, password, role })
+    });
+    
+, password, role })
     });
     
     if(result && result.ok){
-        alert("User added successfully");
-        newUser.value = "";
-        newPass.value = "";
-        await loadUsers();
+        showToast(`User ${username    if(result && result.ok){
+        showToast(`User ${username} added`, "success");
+} added`, "success");
+        document        document.getElementById('newUser.getElementById('newUser').value = "";
+        document.getElementById('').value = "";
+        document.getElementById('newPass').value = "";
+newPass').value = "";
+        await        await loadUsers loadUsers();
     } else {
-        alert("Failed to add user");
+       ();
+    } else {
+        showToast showToast("Failed to add user", "error");
+   ("Failed to add user", "error");
     }
 }
 
-// ================= PASSWORD =================
-async function changePassword(){
-    const newPassword = document.getElementById('newPassword');
+ }
+}
+
+async functionasync function deleteUser(username){
+ deleteUser(username){
+    if    if(!confirm(`Delete(!confirm user ${username}(`Delete user ${username}?`)) return;
     
-    if(!newPassword.value){
-        alert("New password required");
-        return;
-    }
+?`)) return;
     
-    const result = await safeFetch(BASE_URL+"/change-password", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            newPassword: newPassword.value
-        })
+    const result =    const result = await safe await safeFetch(BASE_URLFetch(BASE_URL + "/delete-user", {
+ + "/delete-user", {
+        method: "POST",
+        headers: {"        method: "POST",
+        headers: {"Content-Type": "Content-Type": "application/json"},
+        body:application/json"},
+        body: JSON.stringify({ username JSON.stringify({ username })
+    })
     });
     
-    if(result && result.ok){
-        alert("Password updated successfully");
-        newPassword.value = "";
+    if });
+    
+    if(result && result.ok(result && result.ok){
+       ){
+        showToast("User deleted", "success");
+        showToast("User deleted", "success");
+        await load await loadUsers();
     } else {
-        alert("Failed to update password");
+Users();
+    } else {
+        showToast("Delete failed        showToast("Delete failed", "", "error");
+    }
+}
+
+async function changePassword(){
+    const newPassword = documenterror");
+    }
+}
+
+async function changePassword(){
+    const newPassword.getElementById('newPassword').value;
+    
+ = document.getElementById('newPassword').value;
+    
+    if(!newPassword){
+    if(!new        showToast("New passwordPassword){
+        showToast("New password required", required", "warning");
+        return;
+ "warning");
+        return;
+    }
+    }
+    
+    const result = await    
+    const result = await safeFetch(BASE safeFetch(BASE_URL +_URL + "/change-password", {
+ "/change-password        method: "POST",
+        headers", {
+        method: "POST",
+        headers: {"Content-Type": ": {"Content-Type": "application/json"},
+        body:application/json"},
+        body: JSON.stringify JSON.stringify({ newPassword })
+({ newPassword })
+    });
+    });
+    
+    if(result    
+    if(result && result && result.ok){
+        show.ok){
+        showToast("Password updated", "Toast("Password updated", "success");
+        document.getElementById('newPasswordsuccess");
+        document.getElementById('newPassword').value = "";
+    }').value = "";
+    } else {
+        showToast("Update failed else {
+        showToast("Update failed", "error");
+    }
+", "error");
     }
 }
 
 function toggleAutoBan(){
-    autoBan = !autoBan;
-    const btn = document.getElementById('autoBanBtn');
+}
+
+function toggleAutoBan(){
+    auto    autoBan = !autoBan;
+    constBan = !autoBan;
+ btn = document.getElementById('auto    const btn = document.getElementById('autoBanBtnBanBtn');
+   ');
     if(btn){
-        btn.textContent = autoBan ? "AUTO BAN ON" : "AUTO BAN OFF";
-        btn.className = autoBan ? "red" : "yellow";
+        btn.textContent = auto if(btn){
+        btn.textContent = autoBanBan ? "A ? "AUTO BAN ON 🔴" :UTO BAN ON 🔴" : "A "AUTO BAN OFFUTO BAN OFF ⚫";
+        btn ⚫";
+        btn.className = auto.className = autoBan ?Ban ? "red" : "yellow "red" :";
+        "yellow";
+        showToast(`Auto Ban ${ showToast(`Auto Ban ${autoBanautoBan ? "ENAB ? "ENABLED" : "LED" : "DISABDISABLED"}`, "info");
+LED"}`, "info");
     }
 }
 
+// ================= AUTO LOGIN CHECK =================    }
+}
+
 // ================= AUTO LOGIN CHECK =================
+async
 async function autoLoginCheck(){
+    function autoLoginCheck const token = get(){
     const token = getToken();
-    console.log("[DEBUG] Auto login check, token exists:", !!token);
-    
     if(token){
-        // Test token dengan panggilan ke /users
-        const testResult = await safeFetch(BASE_URL + "/users");
+Token();
+    if(token){
+        const        const testResult = await testResult = await safeFetch safeFetch(BASE_URL + "/users(BASE_URL + "/users");
         if(testResult){
-            console.log("[DEBUG] Token valid, initializing app");
+");
+        if(testResult){
             init();
+                   init();
         } else {
-            console.warn("[WARN] Token invalid, clearing");
             setToken(null);
+            set } else {
+            setTokenUserRole(null);
+(null);
+            setUserRole(null);
         }
     }
 }
 
-// Start
-console.log("[DEBUG] VMS Command Center starting...");
-autoLoginCheck();
+//        }
+    }
+}
+
+// Start application
+console.log Start application
+console.log("[DEBUG] VMS("[DEBUG] Command Center v2 VMS Command Center v2.0 - Hybrid Ready");
+.0 - Hybrid Ready");
+autoLoginautoLoginCheck();
+
+// Global functions forCheck();
+
+// Global functions for inline buttons
+window.ban inline buttons
+window.banDevice = banDevice;
+windowDevice = banDevice;
+window.unban.unbanDevice = unbanDevice;
+Device = unbanDevice;
+window.deleteUser = deleteUserwindow.deleteUser = deleteUser;
+window.login = login;
+;
+window.login = login;
+window.forceInit = forcewindow.forceInit = forceInit;
+window.checkKV =Init;
+window.check checkKV;
+window.logoutKV = checkKV;
+window.logout = logout = logout;
+window.toggleAutoBan;
+window.toggle = toggleAutoBan;
+windowAutoBan = toggleAutoBan.addUser = addUser;
+window.change;
+window.addUser = addUser;
+Password = changePassword;
+
+</window.changePassword = changePasswordscript>
+</body>
+</;
 
 </script>
 </body>
 </html>
+Created By : Apri
