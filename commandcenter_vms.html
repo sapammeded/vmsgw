@@ -1059,5 +1059,197 @@ window.clearAllData = clearAllData;
 // ========== START ==========
 autoLoginCheck();
 </script>
+
+<script>
+(function(){
+    if(window.__CC_HYBRID_FINAL__) return;
+    window.__CC_HYBRID_FINAL__ = true;
+
+    const CLOUD_URL = "https://vmsgw.mededsapam.workers.dev";
+    let onlineStatus = false;
+
+    // ================= CHECK ONLINE =================
+    async function checkOnline(){
+        try{
+            const controller = new AbortController();
+            const timeout = setTimeout(()=>controller.abort(),3000);
+            const res = await fetch(CLOUD_URL + "/", {signal:controller.signal});
+            clearTimeout(timeout);
+            onlineStatus = res.ok;
+            return onlineStatus;
+        }catch(e){
+            onlineStatus = false;
+            return false;
+        }
+    }
+
+    // ================= GET SESSION =================
+    function getSession(){
+        const token = localStorage.getItem("vms_token");
+        const userStr = localStorage.getItem("vms_user");
+        const role = localStorage.getItem("vms_role");
+
+        if(!userStr) return null;
+
+        try{
+            const user = JSON.parse(userStr);
+            return {
+                token,
+                username: user.username,
+                role: role || user.role
+            };
+        }catch(e){
+            return null;
+        }
+    }
+
+    // ================= APPLY UI STATE =================
+    function applyUI(loggedIn){
+        const loginContainer = document.getElementById("loginContainer");
+        const header = document.getElementById("header");
+        const mainContent = document.getElementById("mainContent");
+
+        if(loggedIn){
+            if(loginContainer) loginContainer.style.display = "none";
+            if(header) header.style.display = "flex";
+            if(mainContent) mainContent.style.display = "block";
+        }else{
+            if(loginContainer) loginContainer.style.display = "block";
+            if(header) header.style.display = "none";
+            if(mainContent) mainContent.style.display = "none";
+        }
+    }
+
+    // ================= VALIDATE TOKEN =================
+    async function validateToken(session){
+        if(!session || !session.token) return false;
+
+        if(!onlineStatus){
+            // OFFLINE → tetap izinkan (read-only mindset)
+            console.warn("OFFLINE MODE - skip token validation");
+            return true;
+        }
+
+        try{
+            const res = await fetch(CLOUD_URL + "/users", {
+                headers: {
+                    "x-token": session.token
+                }
+            });
+
+            if(res.ok){
+                return true;
+            }else{
+                return false;
+            }
+        }catch(e){
+            console.warn("Token validation error:", e);
+            return false;
+        }
+    }
+
+    // ================= FORCE LOGOUT =================
+    function forceLogout(){
+        localStorage.removeItem("vms_token");
+        localStorage.removeItem("vms_user");
+        localStorage.removeItem("vms_role");
+
+        applyUI(false);
+
+        console.warn("Session invalid → forced logout");
+    }
+
+    // ================= SYNC SESSION =================
+    async function syncSession(){
+        await checkOnline();
+
+        const session = getSession();
+
+        if(!session){
+            applyUI(false);
+            return;
+        }
+
+        const valid = await validateToken(session);
+
+        if(valid){
+            applyUI(true);
+
+            // Optional: tampilkan user info kalau ada UI
+            if(window.setUserInfo){
+                window.setUserInfo(session.username, session.role);
+            }
+
+        }else{
+            forceLogout();
+        }
+    }
+
+    // ================= STATUS INDICATOR =================
+    function addStatusIndicator(){
+        if(document.getElementById("ccHybridStatus")) return;
+
+        const el = document.createElement("div");
+        el.id = "ccHybridStatus";
+        el.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-family: monospace;
+        `;
+        document.body.appendChild(el);
+
+        async function update(){
+            const session = getSession();
+            const mode = localStorage.getItem("vms_license") || "DEMO";
+
+            await checkOnline();
+
+            const net = onlineStatus ? "🟢 ONLINE" : "🟡 OFFLINE";
+            const user = session ? session.username : "NO-SESSION";
+
+            el.innerHTML = `${net} | ${mode} | ${user}`;
+        }
+
+        update();
+        setInterval(update, 10000);
+    }
+
+    // ================= AUTO INIT =================
+    async function init(){
+        await syncSession();
+        addStatusIndicator();
+    }
+
+    // ================= EVENT LISTENER =================
+    window.addEventListener("storage", () => {
+        // kalau index update session → command ikut update
+        syncSession();
+    });
+
+    window.addEventListener("online", () => {
+        console.log("Back ONLINE → resync");
+        syncSession();
+    });
+
+    window.addEventListener("offline", () => {
+        console.log("OFFLINE MODE");
+    });
+
+    // ================= START =================
+    if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", init);
+    }else{
+        init();
+    }
+
+})();
+</script>
 </body>
 </html>

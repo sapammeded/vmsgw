@@ -1656,6 +1656,415 @@ console.log("🔥 SUPER PATCH ACTIVE (CLEAN INJECT)");
 
 })();
 </script>
+<script>
+// ============================================================
+// HYBRID ORCHESTRATION LAYER - HARDENED PRODUCTION v1.0
+// TAMBAHKAN DI BAWAH index.html (sebelum </body>)
+// ============================================================
+(function() {
+    if (window.__HYBRID_ORCHESTRATION_LOADED__) return;
+    window.__HYBRID_ORCHESTRATION_LOADED__ = true;
 
+    const CLOUD_URL = "https://vmsgw.mededsapam.workers.dev";
+    let currentMode = "DEMO";
+    let onlineStatus = true;
+    let lastValidSession = null;
+
+    // ========== UTILITIES ==========
+    async function sha256(str) {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function detectMode() {
+        const license = localStorage.getItem("vms_license") || "DEMO";
+        currentMode = license === "PRO" ? "PRO" : (license === "BASIC" ? "BASIC" : "DEMO");
+        return currentMode;
+    }
+
+    async function checkOnline() {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
+            const res = await fetch(CLOUD_URL + "/", { signal: controller.signal });
+            clearTimeout(timeout);
+            onlineStatus = res.ok;
+        } catch {
+            onlineStatus = false;
+        }
+        return onlineStatus;
+    }
+
+    // ========== TOAST HELPER ==========
+    function showToast(message, type = "info") {
+        const toast = document.createElement("div");
+        toast.className = `toast-msg ${type}`;
+        toast.innerText = message;
+        toast.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px;
+            background: ${type === "error" ? "#b91c1c" : (type === "success" ? "#1f4e4a" : "#1e293b")};
+            color: white; padding: 10px 20px; border-radius: 40px;
+            z-index: 10000; font-size: 0.8rem; animation: fadeIn 0.2s;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    window.showToast = showToast;
+
+    // ========== USER MANAGEMENT ==========
+    async function ensureDefaultAdmin() {
+        let users = JSON.parse(localStorage.getItem("vms_users") || "[]");
+        if (users.length === 0) {
+            users = [{
+                username: "admin",
+                password: await sha256("123456"),
+                role: "SUPER_ADMIN"
+            }];
+            localStorage.setItem("vms_users", JSON.stringify(users));
+        }
+        return users;
+    }
+
+    async function syncUsersToServer() {
+        if (!onlineStatus) return false;
+        try {
+            const localUsers = JSON.parse(localStorage.getItem("vms_users") || "[]");
+            const res = await fetch(CLOUD_URL + "/sync-users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ users: localUsers })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.users) localStorage.setItem("vms_users", JSON.stringify(data.users));
+                return true;
+            }
+        } catch (e) {
+            console.warn("Sync users failed:", e);
+        }
+        return false;
+    }
+
+    // ========== LOGIN HANDLERS ==========
+    async function serverLogin(username, password) {
+        try {
+            const res = await fetch(CLOUD_URL + "/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (data.ok && data.token) {
+                localStorage.setItem("vms_token", data.token);
+                localStorage.setItem("vms_role", data.role);
+                localStorage.setItem("vms_user", JSON.stringify({ username, role: data.role }));
+                lastValidSession = { username, role: data.role, token: data.token, timestamp: Date.now() };
+                localStorage.setItem("vms_last_valid_session", JSON.stringify(lastValidSession));
+                return { success: true, role: data.role };
+            }
+            return { success: false, error: data.error || "Login failed" };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    async function localLogin(username, password) {
+        await ensureDefaultAdmin();
+        const users = JSON.parse(localStorage.getItem("vms_users") || "[]");
+        const passwordHash = await sha256(password);
+        const user = users.find(u => u.username === username && u.password === passwordHash);
+        if (user) {
+            localStorage.setItem("vms_user", JSON.stringify({ username: user.username, role: user.role }));
+            localStorage.setItem("vms_role", user.role);
+            localStorage.removeItem("vms_token");
+            return { success: true, role: user.role };
+        }
+        return { success: false, error: "Invalid username or password" };
+    }
+
+    // ========== HYBRID LOGIN CONTROLLER ==========
+    window.hybridLogin = async function(username, password) {
+        if (!username || !password) {
+            showToast("Username dan password wajib diisi", "warning");
+            return false;
+        }
+
+        detectMode();
+        await checkOnline();
+
+        if (currentMode === "DEMO") {
+            showToast("DEMO MODE: Tidak perlu login", "warning");
+            return false;
+        }
+
+        if (currentMode === "PRO" && onlineStatus) {
+            const result = await serverLogin(username, password);
+            if (result.success) {
+                showToast(`✅ Login berhasil (ONLINE) - ${result.role}`, "success");
+                return true;
+            }
+            showToast(result.error || "Login gagal", "error");
+            return false;
+        }
+
+        if (currentMode === "PRO" && !onlineStatus) {
+            const cached = localStorage.getItem("vms_last_valid_session");
+            if (cached) {
+                const session = JSON.parse(cached);
+                if (session.username === username && (Date.now() - session.timestamp) < 86400000) {
+                    localStorage.setItem("vms_user", JSON.stringify({ username: session.username, role: session.role }));
+                    localStorage.setItem("vms_role", session.role);
+                    if (session.token) localStorage.setItem("vms_token", session.token);
+                    showToast(`⚠️ OFFLINE MODE - Menggunakan session cached: ${username}`, "warning");
+                    return true;
+                }
+            }
+            showToast("❌ OFFLINE MODE - Tidak ada session valid. Koneksikan internet untuk login PRO.", "error");
+            return false;
+        }
+
+        if (currentMode === "BASIC") {
+            const result = await localLogin(username, password);
+            if (result.success) {
+                showToast(`✅ Login berhasil (LOCAL) - ${result.role}`, "success");
+                return true;
+            }
+            showToast(result.error || "Login gagal", "error");
+            return false;
+        }
+
+        return false;
+    };
+
+    // ========== HYBRID LOGOUT ==========
+    window.hybridLogout = function() {
+        localStorage.removeItem("vms_token");
+        localStorage.removeItem("vms_user");
+        localStorage.removeItem("vms_role");
+        
+        detectMode();
+        
+        const loginOverlay = document.getElementById("loginOverlay");
+        const appLayout = document.getElementById("appLayout");
+        
+        if (currentMode === "PRO") {
+            if (loginOverlay) loginOverlay.style.display = "flex";
+            if (appLayout) appLayout.style.display = "none";
+        } else {
+            if (loginOverlay) loginOverlay.style.display = "none";
+            if (appLayout) appLayout.style.display = "flex";
+        }
+        
+        showToast("Logged out", "info");
+        if (window.renderDashboard) window.renderDashboard();
+        if (window.renderLogTable) window.renderLogTable();
+    };
+
+    // ========== SESSION VALIDATION ==========
+    async function validateSession() {
+        const userStr = localStorage.getItem("vms_user");
+        if (!userStr) return false;
+        
+        detectMode();
+        
+        if (currentMode === "DEMO") {
+            if (!localStorage.getItem("vms_user")) {
+                localStorage.setItem("vms_user", JSON.stringify({ username: "demo", role: "OPERATOR" }));
+                localStorage.setItem("vms_role", "OPERATOR");
+            }
+            return true;
+        }
+        
+        if (currentMode === "PRO" && onlineStatus) {
+            const token = localStorage.getItem("vms_token");
+            if (token) {
+                try {
+                    const res = await fetch(CLOUD_URL + "/users", { headers: { "x-token": token } });
+                    if (res.ok) return true;
+                    localStorage.removeItem("vms_token");
+                    localStorage.removeItem("vms_user");
+                    localStorage.removeItem("vms_role");
+                    return false;
+                } catch {
+                    const cached = localStorage.getItem("vms_last_valid_session");
+                    if (cached) {
+                        const session = JSON.parse(cached);
+                        if (Date.now() - session.timestamp < 86400000) return true;
+                    }
+                    return false;
+                }
+            }
+            return false;
+        }
+        
+        return true;
+    }
+
+    // ========== INIT SESSION ==========
+    window.hybridInitSession = async function() {
+        detectMode();
+        await checkOnline();
+        
+        const loginOverlay = document.getElementById("loginOverlay");
+        const appLayout = document.getElementById("appLayout");
+        
+        if (currentMode === "DEMO") {
+            if (loginOverlay) loginOverlay.style.display = "none";
+            if (appLayout) appLayout.style.display = "flex";
+            if (!localStorage.getItem("vms_user")) {
+                localStorage.setItem("vms_user", JSON.stringify({ username: "demo", role: "OPERATOR" }));
+                localStorage.setItem("vms_role", "OPERATOR");
+            }
+            if (window.updateUserUI) window.updateUserUI();
+            if (window.renderDashboard) window.renderDashboard();
+            if (window.renderLogTable) window.renderLogTable();
+            return true;
+        }
+        
+        if (currentMode === "BASIC") {
+            if (loginOverlay) loginOverlay.style.display = "none";
+            if (appLayout) appLayout.style.display = "flex";
+            const savedUser = localStorage.getItem("vms_user");
+            if (savedUser) {
+                const user = JSON.parse(savedUser);
+                localStorage.setItem("vms_role", user.role);
+                if (window.updateUserUI) window.updateUserUI();
+            }
+            if (window.renderDashboard) window.renderDashboard();
+            if (window.renderLogTable) window.renderLogTable();
+            return true;
+        }
+        
+        if (currentMode === "PRO") {
+            const isValid = await validateSession();
+            if (isValid) {
+                if (loginOverlay) loginOverlay.style.display = "none";
+                if (appLayout) appLayout.style.display = "flex";
+                if (window.updateUserUI) window.updateUserUI();
+                if (window.renderDashboard) window.renderDashboard();
+                if (window.renderLogTable) window.renderLogTable();
+                return true;
+            } else {
+                if (loginOverlay) loginOverlay.style.display = "flex";
+                if (appLayout) appLayout.style.display = "none";
+                return false;
+            }
+        }
+        
+        return false;
+    };
+
+    // ========== UI OVERRIDES ==========
+    function overrideLoginButton() {
+        const doLoginBtn = document.getElementById("doLoginBtn");
+        if (doLoginBtn && !doLoginBtn._hybridOverridden) {
+            doLoginBtn._hybridOverridden = true;
+            doLoginBtn.onclick = async () => {
+                const username = document.getElementById("loginUsername")?.value || "";
+                const password = document.getElementById("loginPassword")?.value || "";
+                const success = await window.hybridLogin(username, password);
+                if (success) {
+                    const loginOverlay = document.getElementById("loginOverlay");
+                    const appLayout = document.getElementById("appLayout");
+                    if (loginOverlay) loginOverlay.style.display = "none";
+                    if (appLayout) appLayout.style.display = "flex";
+                    if (window.renderDashboard) window.renderDashboard();
+                    if (window.renderLogTable) window.renderLogTable();
+                    if (window.updateUserUI) window.updateUserUI();
+                }
+            };
+        }
+    }
+
+    function overrideLogoutButtons() {
+        document.querySelectorAll("#logoutBtnTop, #logoutBtnSidebar").forEach(btn => {
+            if (!btn._hybridOverridden) {
+                btn._hybridOverridden = true;
+                btn.onclick = () => window.hybridLogout();
+            }
+        });
+    }
+
+    // ========== STATUS INDICATOR ==========
+    function addStatusIndicator() {
+        if (document.getElementById("hybridStatusIndicator")) return;
+        
+        const indicator = document.createElement("div");
+        indicator.id = "hybridStatusIndicator";
+        indicator.style.cssText = `
+            position: fixed; bottom: 10px; right: 10px; z-index: 9999;
+            background: rgba(0,0,0,0.8); color: white; padding: 4px 12px;
+            border-radius: 20px; font-size: 10px; font-family: monospace;
+            pointer-events: none; backdrop-filter: blur(4px);
+        `;
+        document.body.appendChild(indicator);
+        
+        async function updateIndicator() {
+            const mode = detectMode();
+            await checkOnline();
+            const icon = onlineStatus ? "🟢" : "🟡";
+            const modeIcon = mode === "PRO" ? "🔴" : (mode === "BASIC" ? "🔵" : "🟠");
+            indicator.innerHTML = `${icon} ${modeIcon} ${mode} | ${onlineStatus ? "ONLINE" : "OFFLINE"}`;
+        }
+        
+        updateIndicator();
+        setInterval(updateIndicator, 10000);
+    }
+
+    // ========== AUTO FORCE INIT ==========
+    async function safeForceInit() {
+        if (!onlineStatus) return;
+        try {
+            const res = await fetch(CLOUD_URL + "/force-init", { method: "POST" });
+            const data = await res.json();
+            if (data.ok) console.log("Force init completed");
+        } catch (e) {
+            console.warn("Force init skipped:", e.message);
+        }
+    }
+
+    // ========== ONLINE MONITOR ==========
+    function monitorOnlineStatus() {
+        window.addEventListener("online", async () => {
+            await checkOnline();
+            await syncUsersToServer();
+            await window.hybridInitSession();
+            showToast("🟢 Kembali ONLINE - Sinkronisasi data", "success");
+            if (window.renderDashboard) window.renderDashboard();
+            if (window.renderLogTable) window.renderLogTable();
+        });
+        
+        window.addEventListener("offline", async () => {
+            await checkOnline();
+            showToast("🟡 MODE OFFLINE - Menggunakan data lokal", "warning");
+        });
+    }
+
+    // ========== START ==========
+    async function start() {
+        await ensureDefaultAdmin();
+        await checkOnline();
+        await safeForceInit();
+        await syncUsersToServer();
+        await window.hybridInitSession();
+        
+        addStatusIndicator();
+        overrideLoginButton();
+        overrideLogoutButtons();
+        monitorOnlineStatus();
+        
+        setInterval(async () => {
+            await checkOnline();
+            if (onlineStatus) await syncUsersToServer();
+        }, 30000);
+    }
+    
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start);
+    } else {
+        start();
+    }
+})();
+</script>
 </body>
 </html>
