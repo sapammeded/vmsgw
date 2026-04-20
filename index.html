@@ -1341,11 +1341,15 @@ navigator.geolocation.getCurrentPosition(async pos=>{
 
 try{
 
+const meta = window.getDeviceMeta ? window.getDeviceMeta() : {};
+
 await fetch(CLOUD_URL + "/save",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
+
 body: JSON.stringify({
 deviceId: localStorage.getItem("vms_device_id"),
+meta: meta,
 anti:{
 lat: pos.coords.latitude,
 lng: pos.coords.longitude,
@@ -1525,6 +1529,8 @@ async function saveToCloudSafe(payload){
     isSyncing = true;
 
     try{
+const meta = window.getDeviceMeta ? window.getDeviceMeta() : {};
+payload.meta = meta;
         const res = await fetch(CLOUD_URL + "/save",{
             method:"POST",
             headers:{ "Content-Type":"application/json" },
@@ -2064,6 +2070,114 @@ console.log("🔥 SUPER PATCH ACTIVE (CLEAN INJECT)");
     } else {
         start();
     }
+})();
+</script>
+<script>
+// ============================================================
+// 🔥 LICENSE CLIENT PATCH (NO BREAK SYSTEM)
+// ============================================================
+
+(function(){
+ if(window.__LICENSE_SYSTEM__) return;
+ window.__LICENSE_SYSTEM__ = true;
+
+ function askLicense(){
+  let license = localStorage.getItem("vms_license_key");
+
+  if(!license){
+   license = prompt("Masukkan LICENSE KEY dari ADMIN:");
+   if(license){
+    localStorage.setItem("vms_license_key", license);
+   }
+  }
+
+  return license;
+ }
+
+ const originalFetch = window.fetch;
+
+ window.fetch = async function(url, options={}){
+  try{
+   if(typeof url === "string" && url.includes("/save") && options.body){
+
+    let body = JSON.parse(options.body);
+
+    body.license = askLicense();
+
+    options.body = JSON.stringify(body);
+   }
+  }catch(e){
+   console.warn("License inject skip", e);
+  }
+
+  return originalFetch(url, options);
+ };
+
+})();
+</script>
+<script>
+// ============================================================
+// 🔥 DEVICE IDENTITY SYSTEM (SAFE ADD-ON)
+// ============================================================
+
+(function(){
+ if(window.__DEVICE_IDENTITY__) return;
+ window.__DEVICE_IDENTITY__ = true;
+
+ const KEY = "device_meta";
+
+ function createForm(){
+  const box = document.createElement("div");
+  box.id = "deviceIdentityBox";
+  box.style.cssText = `
+   position:fixed;top:0;left:0;width:100%;height:100%;
+   background:rgba(0,0,0,0.9);
+   display:flex;align-items:center;justify-content:center;
+   z-index:99999;
+  `;
+
+  box.innerHTML = `
+   <div style="background:#020617;padding:20px;border-radius:12px;width:300px;color:#fff;">
+    <h3>🔐 Setup Device</h3>
+    <input id="meta_company" placeholder="Company" style="width:100%;margin:5px 0;">
+    <input id="meta_site" placeholder="Site" style="width:100%;margin:5px 0;">
+    <input id="meta_name" placeholder="Device Name" style="width:100%;margin:5px 0;">
+    <input id="meta_pic" placeholder="PIC" style="width:100%;margin:5px 0;">
+    <input id="meta_phone" placeholder="Phone" style="width:100%;margin:5px 0;">
+    <button id="saveMetaBtn" style="width:100%;margin-top:10px;">SAVE</button>
+   </div>
+  `;
+
+  document.body.appendChild(box);
+
+  document.getElementById("saveMetaBtn").onclick = () => {
+   const meta = {
+    company: document.getElementById("meta_company").value,
+    site: document.getElementById("meta_site").value,
+    device_name: document.getElementById("meta_name").value,
+    pic: document.getElementById("meta_pic").value,
+    phone: document.getElementById("meta_phone").value
+   };
+
+   localStorage.setItem(KEY, JSON.stringify(meta));
+   box.remove();
+  };
+ }
+
+ function ensureMeta(){
+  const existing = localStorage.getItem(KEY);
+  if(!existing){
+   createForm();
+  }
+ }
+
+ // expose
+ window.getDeviceMeta = function(){
+  return JSON.parse(localStorage.getItem(KEY) || "{}");
+ };
+
+ ensureMeta();
+
 })();
 </script>
 </body>

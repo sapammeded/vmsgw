@@ -424,6 +424,17 @@ input:focus, select:focus {
 <body>
 
 <div class="app-container">
+    <!-- FILTER BOX (HTML murni, tanpa onclick inline) -->
+    <div id="filterBox" style="position:fixed; bottom:80px; left:10px; z-index:9999;">
+        <button id="toggleFilter" style="background:#22c55e; color:#000; border:none; padding:6px 10px; border-radius:6px; font-weight:bold;">
+            🔍 FILTER
+        </button>
+        <div id="filterContent" style="display:none; margin-top:5px; background:#020617; padding:10px; border-radius:8px;">
+            <input id="filterCompany" placeholder="Filter Company" style="width:100%; margin-bottom:5px;">
+            <input id="filterSite" placeholder="Filter Site" style="width:100%;">
+        </div>
+    </div>
+
     <!-- HEADER -->
     <div class="header" id="header" style="display: none;">
         <div class="header-content">
@@ -790,7 +801,13 @@ function renderDevicesTable(devices) {
     
     let html = `<table class="data-table">
         <thead>
-            <tr><th>Device ID</th><th>License</th><th>Status</th><th>Last Location</th><th>Actions</th></tr>
+            <tr>
+                <th>Device ID</th>
+                <th>License</th>
+                <th>Status</th>
+                <th>Last Location</th>
+                <th>Actions</th>
+            </tr>
         </thead>
         <tbody>`;
     
@@ -798,22 +815,45 @@ function renderDevicesTable(devices) {
         let statusClass = 'badge-success';
         if(d.status === 'SUSPICIOUS') statusClass = 'badge-danger';
         if(d.status === 'WARNING') statusClass = 'badge-warning';
+        if(d.status === 'BANNED') statusClass = 'badge-danger';
+        if(d.status === 'SUSPENDED') statusClass = 'badge-danger';
         
         let location = d.lastLocation ? `${d.lastLocation.lat.toFixed(4)}, ${d.lastLocation.lng.toFixed(4)}` : '-';
         
-        html += `<tr>
+        html += `<tr data-device-id="${id}">
             <td><small>${id.substring(0,16)}...</small></td>
             <td><small>${d.license || 'N/A'}</small></td>
             <td><span class="badge ${statusClass}">${d.status || 'ACTIVE'}</span></td>
             <td><small>${location}</small></td>
             <td>
-                <div class="btn-group" style="gap:5px;">
-                    <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="banDevice('${d.license}')">BAN</button>
-                    <button class="btn btn-warning" style="padding:4px 10px;font-size:11px;" onclick="unbanDevice('${d.license}')">UNBAN</button>
+                <div class="btn-group" style="gap:5px;display:flex;flex-wrap:wrap;">
+                    
+                    <button class="btn btn-success" 
+                        style="padding:4px 10px;font-size:11px;" 
+                        onclick="approveDevice('${id}')">
+                        APPROVE
+                    </button>
+
+                    <button class="btn btn-danger" 
+                        style="padding:4px 10px;font-size:11px;" 
+                        onclick="banDevice('${d.license}')">
+                        BAN
+                    </button>
+
+                    <button class="btn btn-warning" 
+                        style="padding:4px 10px;font-size:11px;" 
+                        onclick="unbanDevice('${d.license}')">
+                        UNBAN
+                    </button>
+
                 </div>
             </td>
-        </tr>`;
+         </tr>`;
     });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
     
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -869,7 +909,7 @@ async function renderUsersTable() {
             <td>${u.username}</td>
             <td><span class="badge badge-info">${u.role}</span></td>
             <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteUser('${u.username}')">DELETE</button></td>
-        </tr>`;
+         </tr>`;
     });
     
     html += '</tbody></table>';
@@ -1009,6 +1049,28 @@ function clearAllData() {
     }
 }
 
+// ========== FILTER TOGGLE (SINGLE HANDLER, RAPIH) ==========
+function initFilterToggle() {
+    const toggleBtn = document.getElementById('toggleFilter');
+    const filterContent = document.getElementById('filterContent');
+    
+    if(toggleBtn && filterContent) {
+        // Hapus event lama jika ada, lalu pasang baru
+        const newToggleBtn = toggleBtn.cloneNode(true);
+        toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
+        
+        newToggleBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if(filterContent.style.display === 'none' || filterContent.style.display === '') {
+                filterContent.style.display = 'block';
+            } else {
+                filterContent.style.display = 'none';
+            }
+        };
+    }
+}
+
 // ========== TABS ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1058,6 +1120,7 @@ window.clearAllData = clearAllData;
 
 // ========== START ==========
 autoLoginCheck();
+initFilterToggle(); // filter toggle siap
 </script>
 
 <script>
@@ -1125,7 +1188,6 @@ autoLoginCheck();
         if(!session || !session.token) return false;
 
         if(!onlineStatus){
-            // OFFLINE → tetap izinkan (read-only mindset)
             console.warn("OFFLINE MODE - skip token validation");
             return true;
         }
@@ -1175,7 +1237,6 @@ autoLoginCheck();
         if(valid){
             applyUI(true);
 
-            // Optional: tampilkan user info kalau ada UI
             if(window.setUserInfo){
                 window.setUserInfo(session.username, session.role);
             }
@@ -1227,9 +1288,7 @@ autoLoginCheck();
         addStatusIndicator();
     }
 
-    // ================= EVENT LISTENER =================
     window.addEventListener("storage", () => {
-        // kalau index update session → command ikut update
         syncSession();
     });
 
@@ -1242,7 +1301,6 @@ autoLoginCheck();
         console.log("OFFLINE MODE");
     });
 
-    // ================= START =================
     if(document.readyState === "loading"){
         document.addEventListener("DOMContentLoaded", init);
     }else{
@@ -1251,5 +1309,569 @@ autoLoginCheck();
 
 })();
 </script>
+<script>
+// ============================================================
+// 💰 MONETIZATION + DEVICE CONTROL UI (FINAL SAFE VERSION)
+// ============================================================
+
+(function(){
+ if(window.__MONETIZATION_UI__) return;
+ window.__MONETIZATION_UI__ = true;
+
+ const CLOUD_URL = "https://vmsgw.mededsapam.workers.dev";
+
+ const PRICING = {
+  base: 500000,
+  perDevice: 50000
+ };
+
+ let minimized = false;
+ let currentData = null;
+
+ function createUI(){
+  if(document.getElementById("monetizationBox")) return;
+
+  const box = document.createElement("div");
+  box.id = "monetizationBox";
+  box.style.cssText = `
+   position: fixed;
+   bottom: 80px;
+   right: 10px;
+   width: 320px;
+   max-height: 65vh;
+   overflow:auto;
+   z-index:9999;
+   background:#0f172a;
+   color:#fff;
+   border-radius:12px;
+   padding:10px;
+   font-size:12px;
+  `;
+
+  box.innerHTML = `
+   <div style="display:flex;justify-content:space-between;">
+    <b>💰 CONTROL</b>
+    <div>
+     <button id="miniBtn">➖</button>
+     <button id="closeBtn">❌</button>
+    </div>
+   </div>
+   <div id="content"></div>
+  `;
+
+  document.body.appendChild(box);
+
+  document.getElementById("closeBtn").onclick=()=>{
+   box.style.display="none";
+   localStorage.setItem("monetization_hidden","1");
+  };
+
+  document.getElementById("miniBtn").onclick=()=>{
+   minimized=!minimized;
+   document.getElementById("content").style.display = minimized?"none":"block";
+  };
+ }
+
+ async function fetchData(){
+  const token = localStorage.getItem("vms_token");
+  if(!token) return;
+
+  const res = await fetch(CLOUD_URL+"/admin",{headers:{"x-token":token}});
+  if(!res.ok) return;
+
+  currentData = await res.json();
+ }
+
+ function groupByLicense(devices){
+  const map={};
+
+  Object.values(devices||{}).forEach(d=>{
+   const lic=d.license||"UNKNOWN";
+
+   if(!map[lic]) map[lic]=[];
+   map[lic].push(d);
+  });
+
+  return map;
+ }
+
+ function render(){
+  const el = document.getElementById("content");
+  if(!el || !currentData) return;
+
+  const grouped = groupByLicense(currentData.devices);
+
+  let html="";
+
+  Object.entries(grouped).forEach(([lic,list])=>{
+
+   const active=list.filter(x=>x.status==="ACTIVE").length;
+   const pending=list.filter(x=>x.status==="PENDING").length;
+   const revenue=PRICING.base+(active*PRICING.perDevice);
+
+   html+=`
+   <div style="border:1px solid #334155;margin-bottom:8px;padding:6px;border-radius:8px;">
+    <b>🔑 ${lic}</b><br>
+    Total:${list.length} | 🟢${active} | 🟡${pending}<br>
+    💰 Rp ${revenue.toLocaleString()}
+
+    <div style="margin-top:5px;">
+      ${list.map(d=>`
+        <div style="border-top:1px solid #222;padding:4px 0;">
+          ${d.deviceId}<br>
+          ${d.status}
+          <div>
+            ${d.status==="PENDING" ? `<button onclick="approveDev('${d.deviceId}')">✔</button>`:""}
+            <button onclick="banDev('${d.deviceId}')">🚫</button>
+            <button onclick="unbanDev('${d.deviceId}')">♻</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+   </div>
+   `;
+  });
+
+  el.innerHTML = html || "No Data";
+ }
+
+ window.approveDev=async(id)=>{
+  await fetch(CLOUD_URL+"/approve-device",{
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "x-token":localStorage.getItem("vms_token")
+   },
+   body:JSON.stringify({deviceId:id})
+  });
+ };
+
+ window.banDev=async(id)=>{
+  await fetch(CLOUD_URL+"/ban",{
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "x-token":localStorage.getItem("vms_token")
+   },
+   body:JSON.stringify({license:id})
+  });
+ };
+
+ window.unbanDev=async(id)=>{
+  await fetch(CLOUD_URL+"/unban",{
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "x-token":localStorage.getItem("vms_token")
+   },
+   body:JSON.stringify({license:id})
+  });
+ };
+
+ async function loop(){
+  await fetchData();
+  render();
+ }
+
+ function start(){
+  createUI();
+  loop();
+  setInterval(loop,10000);
+ }
+
+ start();
+
+})();
+</script>
+<script>
+// === DEVICE META DISPLAY & FILTER REAL-TIME ===
+(function(){
+ if(window.__META_UI__) return;
+ window.__META_UI__ = true;
+
+ const oldFetch = window.fetch;
+
+ window.fetch = async (...args)=>{
+  const res = await oldFetch(...args);
+
+  if(args[0]?.includes("/admin")){
+   const clone = res.clone();
+   clone.json().then(data=>{
+    window.__DATA__ = data;
+    if(window.renderDashboard) window.renderDashboard();
+   });
+  }
+
+  return res;
+ };
+
+ const oldRender = window.renderDashboard;
+
+ window.renderDashboard = function(){
+  if(oldRender) oldRender();
+
+  const devices = window.__DATA__?.devices || {};
+  const fCompany = document.getElementById("filterCompany")?.value || "";
+  const fSite = document.getElementById("filterSite")?.value || "";
+
+  document.querySelectorAll("[data-device-id]").forEach(el=>{
+   const id = el.getAttribute("data-device-id");
+   const dev = devices[id];
+
+   if(dev && dev.meta){
+    const match =
+     (!fCompany || dev.meta.company?.toLowerCase().includes(fCompany.toLowerCase())) &&
+     (!fSite || dev.meta.site?.toLowerCase().includes(fSite.toLowerCase()));
+
+    el.style.display = match ? "" : "none";
+   } else if(dev && !dev.meta){
+    el.style.display = "";
+   }
+
+   if(dev && dev.meta && !el.querySelector(".metaBox")){
+    const m = document.createElement("div");
+    m.className = "metaBox";
+    m.style.fontSize="10px";
+    m.style.marginTop="4px";
+    m.style.color="#94a3b8";
+    m.innerHTML = `
+     ${dev.meta.company || "-"}<br>
+     ${dev.meta.site || "-"}<br>
+     ${dev.meta.pic || "-"}<br>
+     ${dev.meta.phone || "-"}
+    `;
+    el.appendChild(m);
+   }
+  });
+ };
+
+ document.addEventListener("input", function(e){
+  if(e.target.id === "filterCompany" || e.target.id === "filterSite"){
+   if(window.renderDashboard){
+    window.renderDashboard();
+   }
+  }
+ });
+
+})();
+</script>
+<script>
+(function(){
+ if(window.__CLEAN_FILTER__) return;
+ window.__CLEAN_FILTER__ = true;
+
+ function applyFilter(){
+
+  const company = document.getElementById("filterCompany")?.value.toLowerCase() || "";
+  const site    = document.getElementById("filterSite")?.value.toLowerCase() || "";
+
+  document.querySelectorAll("[data-device-id]").forEach(row=>{
+    
+    const id = row.getAttribute("data-device-id") || "";
+
+    // 🔥 ambil text langsung dari row (AMAN TANPA DATA SERVER)
+    const text = row.innerText.toLowerCase();
+
+    let match = true;
+
+    if(company){
+      match = match && text.includes(company);
+    }
+
+    if(site){
+      match = match && text.includes(site);
+    }
+
+    row.style.display = match ? "" : "none";
+
+  });
+
+ }
+
+ // 🔥 REALTIME INPUT (AMAN)
+ document.addEventListener("input", function(e){
+  if(
+   e.target.id === "filterCompany" ||
+   e.target.id === "filterSite"
+  ){
+   applyFilter();
+  }
+ });
+
+ // 🔥 AUTO APPLY (AMAN TANPA OVERRIDE)
+ setInterval(()=>{
+  applyFilter();
+ }, 800);
+
+})();
+</script>
+<script>
+(function(){
+ if(window.__FILTER_PRO__) return;
+ window.__FILTER_PRO__ = true;
+
+ // ================= CAPTURE DATA (SAFE) =================
+ const oldFetch = window.fetch;
+
+ window.fetch = async (...args)=>{
+  const res = await oldFetch(...args);
+
+  try{
+   if(args[0]?.includes("/admin")){
+    const clone = res.clone();
+    clone.json().then(data=>{
+     window.__DATA__ = data;
+    });
+   }
+  }catch(e){}
+
+  return res;
+ };
+
+ // ================= FILTER ENGINE =================
+ function applyFilter(){
+
+  const company = document.getElementById("filterCompany")?.value.toLowerCase() || "";
+  const site    = document.getElementById("filterSite")?.value.toLowerCase() || "";
+  const device  = document.getElementById("filterDevice")?.value.toLowerCase() || "";
+  const license = document.getElementById("filterLicense")?.value.toLowerCase() || "";
+  const status  = document.getElementById("filterStatus")?.value || "";
+
+  document.querySelectorAll("[data-device-id]").forEach(row=>{
+    
+    const id = row.getAttribute("data-device-id") || "";
+
+    // fallback kalau data belum ready
+    const dev = window.__DATA__?.devices?.[id];
+
+    let match = true;
+
+    // 🔥 DEVICE ID
+    if(device){
+      match = match && id.toLowerCase().includes(device);
+    }
+
+    // 🔥 kalau data belum ada → pakai fallback text
+    if(!dev){
+      const text = row.innerText.toLowerCase();
+
+      if(company) match = match && text.includes(company);
+      if(site)    match = match && text.includes(site);
+      if(license) match = match && text.includes(license);
+
+      row.style.display = match ? "" : "none";
+      return;
+    }
+
+    const meta = dev.meta || {};
+
+    // 🔥 COMPANY
+    if(company && meta.company){
+      match = match && meta.company.toLowerCase().includes(company);
+    }
+
+    // 🔥 SITE
+    if(site && meta.site){
+      match = match && meta.site.toLowerCase().includes(site);
+    }
+
+    // 🔥 LICENSE
+    if(license){
+      match = match && (dev.license || "").toLowerCase().includes(license);
+    }
+
+    // 🔥 STATUS
+    if(status){
+      match = match && dev.status === status;
+    }
+
+    row.style.display = match ? "" : "none";
+
+  });
+
+ }
+
+ // ================= REALTIME INPUT =================
+ document.addEventListener("input", function(e){
+  if(
+   e.target.id === "filterCompany" ||
+   e.target.id === "filterSite" ||
+   e.target.id === "filterDevice" ||
+   e.target.id === "filterLicense" ||
+   e.target.id === "filterStatus"
+  ){
+   applyFilter();
+  }
+ });
+
+ // ================= AUTO APPLY =================
+ setInterval(()=>{
+  applyFilter();
+ }, 800);
+
+})();
+</script>
+<!-- ================= ENTERPRISE PANEL ================= -->
+<div id="enterprisePanel" style="
+position:fixed;
+right:10px;
+bottom:10px;
+width:300px;
+max-height:70vh;
+overflow:auto;
+background:#020617;
+border:1px solid #1e293b;
+border-radius:10px;
+padding:10px;
+z-index:9999;
+color:white;
+font-size:12px;
+">
+
+<b>💰 LICENSE</b>
+<div id="licenseList"></div>
+
+</div>
+
+<script>
+(function(){
+if(window.__LICENSE_UI__) return;
+window.__LICENSE_UI__ = true;
+
+const API = "https://vmsgw.mededsapam.workers.dev";
+
+// ================= LOAD LICENSE =================
+async function loadLicenses(){
+
+ const token = localStorage.getItem("vms_token");
+ if(!token) return;
+
+ try{
+  const res = await fetch(API+"/licenses",{ headers:{ "x-token":token }});
+  if(!res.ok) return;
+
+  const data = await res.json();
+  renderLicenses(data);
+
+ }catch(e){
+  console.log("load license error");
+ }
+}
+
+// ================= RENDER =================
+function renderLicenses(data){
+
+ const box = document.getElementById("licenseList");
+ if(!box) return;
+
+ box.innerHTML="";
+
+ Object.values(data).forEach(l=>{
+
+  const total = l.devices.length * (l.pricePerDevice||0);
+  const bill = l.billing || {};
+
+  const div = document.createElement("div");
+  div.style.cssText="border-bottom:1px solid #1e293b;margin-bottom:8px;padding-bottom:6px";
+
+  div.innerHTML = `
+   <div><b>${l.company}</b></div>
+   <div style="font-size:10px">${l.key}</div>
+   <div>Device: ${l.devices.length}</div>
+   <div>Rp ${total.toLocaleString()}</div>
+   <div>Status: ${bill.status||"-"}</div>
+
+   <button onclick="initBilling('${l.key}')">Start</button>
+   <button onclick="genInvoice('${l.key}')">Invoice</button>
+   <button onclick="payInvoice('${l.key}')">Paid</button>
+  `;
+
+  box.appendChild(div);
+ });
+}
+
+// ================= ACTION =================
+window.initBilling = async function(key){
+ const token = localStorage.getItem("vms_token");
+
+ await fetch(API+"/init-billing",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "x-token":token
+  },
+  body:JSON.stringify({licenseKey:key,days:30})
+ });
+
+ alert("Billing dimulai");
+ loadLicenses();
+};
+
+window.genInvoice = async function(key){
+ const token = localStorage.getItem("vms_token");
+
+ await fetch(API+"/generate-invoice",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "x-token":token
+  },
+  body:JSON.stringify({licenseKey:key})
+ });
+
+ alert("Invoice dibuat");
+ loadLicenses();
+};
+
+window.payInvoice = async function(key){
+ const token = localStorage.getItem("vms_token");
+
+ await fetch(API+"/pay-invoice",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "x-token":token
+  },
+  body:JSON.stringify({licenseKey:key})
+ });
+
+ alert("Sudah dibayar");
+ loadLicenses();
+};
+
+// ================= AUTO LOAD =================
+setInterval(loadLicenses,10000);
+loadLicenses();
+
+})();
+</script>
+
+<script>
+async function approveDevice(deviceId){
+
+ const token = localStorage.getItem("vms_token");
+
+ if(!token){
+  alert("Login dulu");
+  return;
+ }
+
+ await fetch("https://vmsgw.mededsapam.workers.dev/approve-device",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "x-token":token
+  },
+  body:JSON.stringify({deviceId})
+ });
+
+ alert("Device approved");
+
+ if(window.loadDashboard){
+  window.loadDashboard();
+ }
+}
+</script>
+
 </body>
 </html>
