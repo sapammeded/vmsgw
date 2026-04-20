@@ -644,11 +644,11 @@ async function fetchAPI(path, options = {}) {
     }
 }
 
-// ========== FORCE INIT ==========
+// ========== FORCE INIT (FIXED: POST method) ==========
 async function forceInit() {
     showToast('Initializing system...', 'info');
     try {
-        const res = await fetch(BASE_URL + '/force-init');
+        const res = await fetch(BASE_URL + '/force-init', { method: 'POST' });
         const data = await res.json();
         if(data.ok) {
             showToast('✅ Init OK! Login with admin/123456', 'success');
@@ -679,7 +679,7 @@ async function checkStatus() {
     }
 }
 
-// ========== LOGIN ==========
+// ========== LOGIN (FIXED: response handling + session storage) ==========
 async function login() {
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
@@ -698,9 +698,22 @@ async function login() {
         });
         const data = await res.json();
         
+        // FIX: check if response is not ok
+        if (!res.ok) {
+            showToast(data.error || 'Login failed', 'error');
+            return;
+        }
+        
         if(data.ok && data.token) {
             setToken(data.token);
             setUserRole(data.role);
+            
+            // FIX: store user session object
+            localStorage.setItem("vms_user", JSON.stringify({
+                username: username,
+                role: data.role
+            }));
+            
             showToast(`Welcome ${username} (${data.role})`, 'success');
             
             document.getElementById('loginContainer').style.display = 'none';
@@ -726,6 +739,7 @@ function logout() {
     if(confirm('Yakin ingin logout?')) {
         setToken(null);
         setUserRole(null);
+        localStorage.removeItem("vms_user");
         if(refreshInterval) clearInterval(refreshInterval);
         
         document.getElementById('loginContainer').style.display = 'block';
@@ -792,6 +806,7 @@ function renderAlerts(devices) {
     container.innerHTML = html || '<div style="text-align:center;padding:20px;color:#94a3b8;">✅ No active alerts</div>';
 }
 
+// ========== RENDER DEVICES TABLE (FIXED: duplicate closing tags removed) ==========
 function renderDevicesTable(devices) {
     const container = document.getElementById('devicesTable');
     if(Object.keys(devices).length === 0) {
@@ -827,35 +842,28 @@ function renderDevicesTable(devices) {
             <td><small>${location}</small></td>
             <td>
                 <div class="btn-group" style="gap:5px;display:flex;flex-wrap:wrap;">
-                    
                     <button class="btn btn-success" 
                         style="padding:4px 10px;font-size:11px;" 
                         onclick="approveDevice('${id}')">
                         APPROVE
                     </button>
-
                     <button class="btn btn-danger" 
                         style="padding:4px 10px;font-size:11px;" 
                         onclick="banDevice('${d.license}')">
                         BAN
                     </button>
-
                     <button class="btn btn-warning" 
                         style="padding:4px 10px;font-size:11px;" 
                         onclick="unbanDevice('${d.license}')">
                         UNBAN
                     </button>
-
                 </div>
             </td>
          </tr>`;
     });
 
     html += `</tbody></table>`;
-    container.innerHTML = html;
-}
-    
-    html += '</tbody></table>';
+    // FIX: only assign once
     container.innerHTML = html;
 }
 
@@ -909,7 +917,7 @@ async function renderUsersTable() {
             <td>${u.username}</td>
             <td><span class="badge badge-info">${u.role}</span></td>
             <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteUser('${u.username}')">DELETE</button></td>
-         </tr>`;
+          </tr>`;
     });
     
     html += '</tbody></table>';
@@ -1049,13 +1057,12 @@ function clearAllData() {
     }
 }
 
-// ========== FILTER TOGGLE (SINGLE HANDLER, RAPIH) ==========
+// ========== FILTER TOGGLE ==========
 function initFilterToggle() {
     const toggleBtn = document.getElementById('toggleFilter');
     const filterContent = document.getElementById('filterContent');
     
     if(toggleBtn && filterContent) {
-        // Hapus event lama jika ada, lalu pasang baru
         const newToggleBtn = toggleBtn.cloneNode(true);
         toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
         
@@ -1098,6 +1105,7 @@ async function autoLoginCheck() {
         } else {
             setToken(null);
             setUserRole(null);
+            localStorage.removeItem("vms_user");
         }
     }
 }
@@ -1120,7 +1128,7 @@ window.clearAllData = clearAllData;
 
 // ========== START ==========
 autoLoginCheck();
-initFilterToggle(); // filter toggle siap
+initFilterToggle();
 </script>
 
 <script>
@@ -1131,7 +1139,6 @@ initFilterToggle(); // filter toggle siap
     const CLOUD_URL = "https://vmsgw.mededsapam.workers.dev";
     let onlineStatus = false;
 
-    // ================= CHECK ONLINE =================
     async function checkOnline(){
         try{
             const controller = new AbortController();
@@ -1146,7 +1153,6 @@ initFilterToggle(); // filter toggle siap
         }
     }
 
-    // ================= GET SESSION =================
     function getSession(){
         const token = localStorage.getItem("vms_token");
         const userStr = localStorage.getItem("vms_user");
@@ -1166,7 +1172,6 @@ initFilterToggle(); // filter toggle siap
         }
     }
 
-    // ================= APPLY UI STATE =================
     function applyUI(loggedIn){
         const loginContainer = document.getElementById("loginContainer");
         const header = document.getElementById("header");
@@ -1183,7 +1188,6 @@ initFilterToggle(); // filter toggle siap
         }
     }
 
-    // ================= VALIDATE TOKEN =================
     async function validateToken(session){
         if(!session || !session.token) return false;
 
@@ -1210,7 +1214,6 @@ initFilterToggle(); // filter toggle siap
         }
     }
 
-    // ================= FORCE LOGOUT =================
     function forceLogout(){
         localStorage.removeItem("vms_token");
         localStorage.removeItem("vms_user");
@@ -1221,7 +1224,6 @@ initFilterToggle(); // filter toggle siap
         console.warn("Session invalid → forced logout");
     }
 
-    // ================= SYNC SESSION =================
     async function syncSession(){
         await checkOnline();
 
@@ -1246,7 +1248,6 @@ initFilterToggle(); // filter toggle siap
         }
     }
 
-    // ================= STATUS INDICATOR =================
     function addStatusIndicator(){
         if(document.getElementById("ccHybridStatus")) return;
 
@@ -1282,7 +1283,6 @@ initFilterToggle(); // filter toggle siap
         setInterval(update, 10000);
     }
 
-    // ================= AUTO INIT =================
     async function init(){
         await syncSession();
         addStatusIndicator();
@@ -1309,6 +1309,7 @@ initFilterToggle(); // filter toggle siap
 
 })();
 </script>
+
 <script>
 // ============================================================
 // 💰 MONETIZATION + DEVICE CONTROL UI (FINAL SAFE VERSION)
@@ -1483,6 +1484,7 @@ initFilterToggle(); // filter toggle siap
 
 })();
 </script>
+
 <script>
 // === DEVICE META DISPLAY & FILTER REAL-TIME ===
 (function(){
@@ -1555,6 +1557,7 @@ initFilterToggle(); // filter toggle siap
 
 })();
 </script>
+
 <script>
 (function(){
  if(window.__CLEAN_FILTER__) return;
@@ -1569,7 +1572,6 @@ initFilterToggle(); // filter toggle siap
     
     const id = row.getAttribute("data-device-id") || "";
 
-    // 🔥 ambil text langsung dari row (AMAN TANPA DATA SERVER)
     const text = row.innerText.toLowerCase();
 
     let match = true;
@@ -1588,7 +1590,6 @@ initFilterToggle(); // filter toggle siap
 
  }
 
- // 🔥 REALTIME INPUT (AMAN)
  document.addEventListener("input", function(e){
   if(
    e.target.id === "filterCompany" ||
@@ -1598,19 +1599,19 @@ initFilterToggle(); // filter toggle siap
   }
  });
 
- // 🔥 AUTO APPLY (AMAN TANPA OVERRIDE)
+ // FIX: changed interval from 800ms to 1500ms for performance
  setInterval(()=>{
   applyFilter();
- }, 800);
+ }, 1500);
 
 })();
 </script>
+
 <script>
 (function(){
  if(window.__FILTER_PRO__) return;
  window.__FILTER_PRO__ = true;
 
- // ================= CAPTURE DATA (SAFE) =================
  const oldFetch = window.fetch;
 
  window.fetch = async (...args)=>{
@@ -1628,7 +1629,6 @@ initFilterToggle(); // filter toggle siap
   return res;
  };
 
- // ================= FILTER ENGINE =================
  function applyFilter(){
 
   const company = document.getElementById("filterCompany")?.value.toLowerCase() || "";
@@ -1641,17 +1641,14 @@ initFilterToggle(); // filter toggle siap
     
     const id = row.getAttribute("data-device-id") || "";
 
-    // fallback kalau data belum ready
     const dev = window.__DATA__?.devices?.[id];
 
     let match = true;
 
-    // 🔥 DEVICE ID
     if(device){
       match = match && id.toLowerCase().includes(device);
     }
 
-    // 🔥 kalau data belum ada → pakai fallback text
     if(!dev){
       const text = row.innerText.toLowerCase();
 
@@ -1665,22 +1662,18 @@ initFilterToggle(); // filter toggle siap
 
     const meta = dev.meta || {};
 
-    // 🔥 COMPANY
     if(company && meta.company){
       match = match && meta.company.toLowerCase().includes(company);
     }
 
-    // 🔥 SITE
     if(site && meta.site){
       match = match && meta.site.toLowerCase().includes(site);
     }
 
-    // 🔥 LICENSE
     if(license){
       match = match && (dev.license || "").toLowerCase().includes(license);
     }
 
-    // 🔥 STATUS
     if(status){
       match = match && dev.status === status;
     }
@@ -1691,7 +1684,6 @@ initFilterToggle(); // filter toggle siap
 
  }
 
- // ================= REALTIME INPUT =================
  document.addEventListener("input", function(e){
   if(
    e.target.id === "filterCompany" ||
@@ -1704,13 +1696,14 @@ initFilterToggle(); // filter toggle siap
   }
  });
 
- // ================= AUTO APPLY =================
+ // FIX: changed interval from 800ms to 1500ms for performance
  setInterval(()=>{
   applyFilter();
- }, 800);
+ }, 1500);
 
 })();
 </script>
+
 <!-- ================= ENTERPRISE PANEL ================= -->
 <div id="enterprisePanel" style="
 position:fixed;
@@ -1740,7 +1733,6 @@ window.__LICENSE_UI__ = true;
 
 const API = "https://vmsgw.mededsapam.workers.dev";
 
-// ================= LOAD LICENSE =================
 async function loadLicenses(){
 
  const token = localStorage.getItem("vms_token");
@@ -1758,7 +1750,6 @@ async function loadLicenses(){
  }
 }
 
-// ================= RENDER =================
 function renderLicenses(data){
 
  const box = document.getElementById("licenseList");
@@ -1790,7 +1781,6 @@ function renderLicenses(data){
  });
 }
 
-// ================= ACTION =================
 window.initBilling = async function(key){
  const token = localStorage.getItem("vms_token");
 
@@ -1839,7 +1829,6 @@ window.payInvoice = async function(key){
  loadLicenses();
 };
 
-// ================= AUTO LOAD =================
 setInterval(loadLicenses,10000);
 loadLicenses();
 

@@ -939,6 +939,30 @@ window.onunhandledrejection = function(e) {
         renderDashboard(); 
         renderLogTable();
         secureSave();
+        
+        // 🔥 SYNC AFTER REGISTER
+        if (typeof syncToCloud === "function") {
+            let currentLat = 0, currentLng = 0;
+            try {
+                const pos = await getGPS();
+                if (pos) { currentLat = pos.lat; currentLng = pos.lon; }
+            } catch(e) {}
+            const payload = {
+                deviceId: localStorage.getItem("vms_device_id"),
+                anti: {
+                    license: localStorage.getItem("vms_license_key") || "DEMO",
+                    lat: currentLat || 0,
+                    lng: currentLng || 0,
+                    flags: "NORMAL"
+                },
+                meta: {
+                    company: localStorage.getItem("vms_company") || "-",
+                    site: localStorage.getItem("vms_site") || "-",
+                    pic: localStorage.getItem("vms_pic") || "-"
+                }
+            };
+            syncToCloud(payload);
+        }
     };
 
     async function capturePhoto(){
@@ -1018,6 +1042,30 @@ window.onunhandledrejection = function(e) {
         renderDashboard(); 
         renderLogTable();
         secureSave();
+        
+        // 🔥 SYNC AFTER WALK-IN
+        if (typeof syncToCloud === "function") {
+            let currentLat = 0, currentLng = 0;
+            try {
+                const pos = await getGPS();
+                if (pos) { currentLat = pos.lat; currentLng = pos.lon; }
+            } catch(e) {}
+            const payload = {
+                deviceId: localStorage.getItem("vms_device_id"),
+                anti: {
+                    license: localStorage.getItem("vms_license_key") || "DEMO",
+                    lat: currentLat || 0,
+                    lng: currentLng || 0,
+                    flags: "NORMAL"
+                },
+                meta: {
+                    company: localStorage.getItem("vms_company") || "-",
+                    site: localStorage.getItem("vms_site") || "-",
+                    pic: localStorage.getItem("vms_pic") || "-"
+                }
+            };
+            syncToCloud(payload);
+        }
     };
 
     let scannerInstance = null;
@@ -1130,6 +1178,30 @@ window.onunhandledrejection = function(e) {
             renderDashboard(); 
             renderLogTable();
             secureSave();
+            
+            // 🔥 SYNC AFTER SCAN QR
+            if (typeof syncToCloud === "function") {
+                let currentLat = 0, currentLng = 0;
+                try {
+                    const pos = await getGPS();
+                    if (pos) { currentLat = pos.lat; currentLng = pos.lon; }
+                } catch(e) {}
+                const payload = {
+                    deviceId: localStorage.getItem("vms_device_id"),
+                    anti: {
+                        license: localStorage.getItem("vms_license_key") || "DEMO",
+                        lat: currentLat || 0,
+                        lng: currentLng || 0,
+                        flags: "NORMAL"
+                    },
+                    meta: {
+                        company: localStorage.getItem("vms_company") || "-",
+                        site: localStorage.getItem("vms_site") || "-",
+                        pic: localStorage.getItem("vms_pic") || "-"
+                    }
+                };
+                syncToCloud(payload);
+            }
         } finally { setTimeout(()=>processingRegs.delete(reg), 1000); }
     }
     
@@ -2179,6 +2251,82 @@ console.log("🔥 SUPER PATCH ACTIVE (CLEAN INJECT)");
  ensureMeta();
 
 })();
+</script>
+
+<script>
+// ============================================================
+// 🔥 SYNC FUNCTION (PATCH ONLY)
+// ============================================================
+const SYNC_CLOUD_URL = "https://vmsgw.mededsapam.workers.dev";
+
+async function syncToCloud(payload) {
+    try {
+        if (!payload || !payload.deviceId) return;
+        if (!navigator.onLine) return;
+
+        const lastSync = localStorage.getItem("vms_last_sync");
+        const currentHash = JSON.stringify(payload);
+        if (lastSync === currentHash) return;
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(SYNC_CLOUD_URL + "/save", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (res.ok) {
+            localStorage.setItem("vms_last_sync", currentHash);
+        }
+
+    } catch (err) {
+        console.warn("SYNC ERROR:", err.message);
+    }
+}
+</script>
+<script>
+const SYNC_CLOUD_URL = "https://vmsgw.mededsapam.workers.dev";
+
+async function syncToCloud(payload) {
+    try {
+        if (!payload || !payload.deviceId) return;
+        if (!navigator.onLine) return;
+
+        const lastSync = localStorage.getItem("vms_last_sync");
+        const currentHash = JSON.stringify(payload);
+
+        if (lastSync === currentHash) return;
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(SYNC_CLOUD_URL + "/save", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (res.ok) {
+            localStorage.setItem("vms_last_sync", currentHash);
+            console.log("SYNC SUCCESS");
+        }
+
+    } catch (err) {
+        console.warn("SYNC ERROR:", err.message);
+    }
+}
 </script>
 </body>
 </html>
